@@ -54,7 +54,7 @@ Invoke-Checked $venvPython @("manage.py", "test")
 Invoke-Checked $venvPython @("tools\verify_project.py")
 
 Write-Step "Building PyInstaller app directory..."
-Invoke-Checked $venvPython @("-m", "PyInstaller", "-y", "packaging\pyinstaller_generic_ml.spec")
+Invoke-Checked $venvPython @("-m", "PyInstaller", "-y", "packaging\pyinstaller_easy_ml.spec")
 
 if ($SkipInstaller) {
     Write-Step "Skipping Inno Setup installer build."

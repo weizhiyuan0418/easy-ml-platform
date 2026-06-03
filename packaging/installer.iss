@@ -1,18 +1,18 @@
-#define MyAppName "Generic ML Platform"
-#define MyAppVersion "0.1.0"
+#define MyAppName "Easy ML Platform"
+#define MyAppVersion "0.1.1"
 #define MyAppPublisher "weizhiyuan0418"
-#define MyAppExeName "GenericMLPlatform.exe"
+#define MyAppExeName "EasyMLPlatform.exe"
 
 [Setup]
 AppId={{2C8C709A-BC1B-4B45-A206-C91CF38C5CC4}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-DefaultDirName={autopf}\Generic ML Platform
+DefaultDirName={autopf}\Easy ML Platform
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=..\installer_output
-OutputBaseFilename=GenericMLPlatformSetup-{#MyAppVersion}
+OutputBaseFilename=EasyMLPlatformSetup-{#MyAppVersion}
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
@@ -25,7 +25,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "..\dist\GenericMLPlatform\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\dist\EasyMLPlatform\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

@@ -15,6 +15,8 @@ from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QMessageBox, QPushButton, QVBoxLayout, QWidget
 
 
+APP_NAME = "Easy ML Platform"
+
 if getattr(sys, "frozen", False):
     BASE_DIR = Path(sys.executable).resolve().parent
 else:
@@ -38,7 +40,7 @@ def wait_for_server(url: str, *, timeout: float = 25.0) -> None:
         except Exception as exc:  # noqa: BLE001
             last_error = exc
         time.sleep(0.4)
-    raise RuntimeError(f"本地服务启动超时: {last_error}")
+    raise RuntimeError(f"Local service startup timed out: {last_error}")
 
 
 def show_error(title: str, message: str) -> None:
@@ -62,7 +64,7 @@ def run_migrations() -> None:
             call_command("migrate", interactive=False, verbosity=1)
     except Exception as exc:  # noqa: BLE001
         details = stdout.getvalue() + "\n" + stderr.getvalue()
-        raise RuntimeError(f"数据库初始化失败: {exc}\n\n{details.strip()}") from exc
+        raise RuntimeError(f"Database initialization failed: {exc}\n\n{details.strip()}") from exc
 
 
 def run_django_server(host_port: str) -> None:
@@ -87,7 +89,7 @@ class DesktopShell(QMainWindow):
         super().__init__()
         self.url = url
         self.process = process
-        self.setWindowTitle("通用机器学习软件")
+        self.setWindowTitle(APP_NAME)
         self.resize(420, 180)
 
         root = QWidget()
@@ -95,12 +97,12 @@ class DesktopShell(QMainWindow):
         layout.setContentsMargins(22, 22, 22, 22)
         layout.setSpacing(12)
 
-        title = QLabel("通用机器学习软件已启动")
+        title = QLabel(f"{APP_NAME} is running")
         title.setAlignment(Qt.AlignLeft)
         title.setStyleSheet("font-size: 18px; font-weight: 700;")
-        info = QLabel(f"本地 Web 地址: {url}")
+        info = QLabel(f"Local Web URL: {url}")
         info.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        button = QPushButton("打开界面")
+        button = QPushButton("Open UI")
         button.clicked.connect(self.open_url)
 
         layout.addWidget(title)
@@ -130,12 +132,12 @@ def main() -> int:
     try:
         run_migrations()
     except Exception as exc:  # noqa: BLE001
-        show_error("启动失败", str(exc))
+        show_error("Startup failed", str(exc))
         return 1
 
     port = find_free_port()
     url = f"http://127.0.0.1:{port}/"
-    log_dir = Path(tempfile.gettempdir()) / "generic_ml_platform"
+    log_dir = Path(tempfile.gettempdir()) / "easy_ml_platform"
     log_dir.mkdir(parents=True, exist_ok=True)
     stdout_path = log_dir / "django_stdout.log"
     stderr_path = log_dir / "django_stderr.log"
@@ -157,7 +159,7 @@ def main() -> int:
         stdout_fp.close()
         stderr_fp.close()
         details = read_log_tail(stderr_path) or read_log_tail(stdout_path)
-        show_error("启动失败", f"{exc}\n\n日志位置:\n{stderr_path}\n\n{details}")
+        show_error("Startup failed", f"{exc}\n\nLog path:\n{stderr_path}\n\n{details}")
         return 1
 
     app = QApplication.instance() or QApplication(sys.argv)

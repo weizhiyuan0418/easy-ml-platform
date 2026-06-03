@@ -1,4 +1,4 @@
-# 通用机器学习软件 / Generic ML Platform
+# Easy ML Platform
 
 [中文](#中文) | [English](#english)
 
@@ -6,7 +6,7 @@
 
 ## 中文
 
-通用机器学习软件是一个面向表格数据的本地 Web 应用。用户可以自定义输入字段、输出字段和字段类型，录入或导入数据，然后训练多个候选模型并进行预测。
+Easy ML Platform 是一个面向表格数据的本地 Web 应用。用户可以自定义输入字段、输出字段和字段类型，录入或导入数据，然后训练多个候选模型并进行预测。
 
 当前版本支持：
 
@@ -21,12 +21,12 @@
 
 Windows 用户可以直接下载 Release 安装包：
 
-[下载 GenericMLPlatformSetup-0.1.0.exe](https://github.com/weizhiyuan0418/generic_ml_platform/releases/tag/v0.1.0)
+[下载 EasyMLPlatformSetup-0.1.1.exe](https://github.com/weizhiyuan0418/generic_ml_platform/releases/tag/v0.1.1)
 
 安装包 SHA256：
 
 ```text
-0E36300045109CA19DD7A655EAEBF173DBCC6C5F2A815E61EB8BEA03BF3F8D91
+DE2CB3BE5D2B2EACEDA8BD16E7CDD66D843B4E502AB5F382090D8E631E5CB6F1
 ```
 
 ### 一键启动源码版
@@ -117,10 +117,10 @@ py -3 desktop_main.py
 ```powershell
 $env:DJANGO_SECRET_KEY="your-secret-key"
 $env:DJANGO_DEBUG="1"
-$env:GENERIC_ML_DATA_DIR="C:\Users\you\AppData\Local\GenericMLPlatform"
+$env:EASY_ML_DATA_DIR="C:\Users\you\AppData\Local\EasyMLPlatform"
 ```
 
-当前开发模式默认 `DJANGO_DEBUG=1`。生产部署时应设置安全的 `DJANGO_SECRET_KEY`，并关闭 debug。`GENERIC_ML_DATA_DIR` 可选，用于指定 SQLite 数据库和模型文件的保存目录；源码运行默认保存在项目目录，打包版默认保存在用户本地数据目录。
+当前开发模式默认 `DJANGO_DEBUG=1`。生产部署时应设置安全的 `DJANGO_SECRET_KEY`，并关闭 debug。`EASY_ML_DATA_DIR` 可选，用于指定 SQLite 数据库和模型文件的保存目录；源码运行默认保存在项目目录，打包版默认保存在用户本地数据目录。旧变量 `GENERIC_ML_DATA_DIR` 仍保留兼容。
 
 ### 本地 Windows 打包
 
@@ -187,7 +187,7 @@ py -3 tools\verify_project.py
 
 ## English
 
-Generic ML Platform is a local Web application for tabular machine learning. Users can define input fields, output fields, and field types, enter or import datasets, train multiple candidate models, and run predictions.
+Easy ML Platform is a local Web application for tabular machine learning. Users can define input fields, output fields, and field types, enter or import datasets, train multiple candidate models, and run predictions.
 
 Current features:
 
@@ -202,12 +202,12 @@ Current features:
 
 Windows users can download the Release installer directly:
 
-[Download GenericMLPlatformSetup-0.1.0.exe](https://github.com/weizhiyuan0418/generic_ml_platform/releases/tag/v0.1.0)
+[Download EasyMLPlatformSetup-0.1.1.exe](https://github.com/weizhiyuan0418/generic_ml_platform/releases/tag/v0.1.1)
 
 Installer SHA256:
 
 ```text
-0E36300045109CA19DD7A655EAEBF173DBCC6C5F2A815E61EB8BEA03BF3F8D91
+DE2CB3BE5D2B2EACEDA8BD16E7CDD66D843B4E502AB5F382090D8E631E5CB6F1
 ```
 
 ### One-Click Source Startup
@@ -298,10 +298,10 @@ Copy `.env.example` or set environment variables directly:
 ```powershell
 $env:DJANGO_SECRET_KEY="your-secret-key"
 $env:DJANGO_DEBUG="1"
-$env:GENERIC_ML_DATA_DIR="C:\Users\you\AppData\Local\GenericMLPlatform"
+$env:EASY_ML_DATA_DIR="C:\Users\you\AppData\Local\EasyMLPlatform"
 ```
 
-Development mode defaults to `DJANGO_DEBUG=1`. For production deployments, set a secure `DJANGO_SECRET_KEY` and disable debug mode. `GENERIC_ML_DATA_DIR` is optional and controls where the SQLite database and model files are stored. Source runs default to the project directory; packaged builds default to the user's local application data directory.
+Development mode defaults to `DJANGO_DEBUG=1`. For production deployments, set a secure `DJANGO_SECRET_KEY` and disable debug mode. `EASY_ML_DATA_DIR` is optional and controls where the SQLite database and model files are stored. Source runs default to the project directory; packaged builds default to the user's local application data directory. The legacy `GENERIC_ML_DATA_DIR` variable is still supported for compatibility.
 
 ### Local Windows Packaging
 

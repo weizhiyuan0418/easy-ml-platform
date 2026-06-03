@@ -6,7 +6,7 @@
   <rect x="490" y="152" width="198" height="110" rx="10" fill="#ffffff" stroke="#d9e1ec"/>
   <rect x="712" y="152" width="220" height="110" rx="10" fill="#ffffff" stroke="#d9e1ec"/>
   <rect x="268" y="292" width="664" height="216" rx="10" fill="#ffffff" stroke="#d9e1ec"/>
-  <text x="48" y="72" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700">Generic ML</text>
+  <text x="48" y="72" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700">Easy ML</text>
   <text x="48" y="130" fill="#c7d7df" font-family="Segoe UI, Arial, sans-serif" font-size="16">Dashboard</text>
   <text x="48" y="170" fill="#c7d7df" font-family="Segoe UI, Arial, sans-serif" font-size="16">Fields</text>
   <text x="48" y="210" fill="#c7d7df" font-family="Segoe UI, Arial, sans-serif" font-size="16">Dataset</text>

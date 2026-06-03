@@ -8,7 +8,7 @@ PORT="${PORT:-8000}"
 OPEN_BROWSER="${OPEN_BROWSER:-1}"
 
 log() {
-  printf '[generic-ml] %s\n' "$1"
+  printf '[easy-ml] %s\n' "$1"
 }
 
 find_python() {

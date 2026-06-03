@@ -91,7 +91,7 @@ def _is_missing(value: Any) -> bool:
 def default_project() -> Project:
     project, _created = Project.objects.get_or_create(
         name="Default Project",
-        defaults={"description": "默认通用机器学习项目"},
+        defaults={"description": "Default Easy ML Platform project"},
     )
     return project
 

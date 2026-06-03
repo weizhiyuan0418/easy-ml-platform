@@ -9,7 +9,7 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 
 function Write-Step {
     param([string]$Message)
-    Write-Host "[generic-ml] $Message" -ForegroundColor Cyan
+    Write-Host "[easy-ml] $Message" -ForegroundColor Cyan
 }
 
 function Invoke-Checked {
