@@ -1,0 +1,50 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+local_settings.py
+
+# Django runtime state
+db.sqlite3
+*.sqlite3
+media/
+staticfiles/
+
+# Local model/runtime artifacts
+models_store/trained/*
+models_store/metadata/*
+!models_store/trained/.gitkeep
+!models_store/metadata/.gitkeep
+
+# Model and test artifacts
+*.joblib
+*.pkl
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Logs and packaging output
+*.log
+dist/
+build/
+*.spec
+installer_output/
+*.msi
+*.exe
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
