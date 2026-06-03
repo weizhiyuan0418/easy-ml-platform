@@ -1,6 +1,12 @@
-# 通用机器学习软件
+# 通用机器学习软件 / Generic ML Platform
 
-通用机器学习软件是一个面向表格数据的本地 Web 应用。用户可以自定义输入字段、输出字段、字段类型，录入或导入数据，然后训练多个候选模型并进行预测。
+[中文](#中文) | [English](#english)
+
+![App screenshot placeholder](docs/screenshot-placeholder.svg)
+
+## 中文
+
+通用机器学习软件是一个面向表格数据的本地 Web 应用。用户可以自定义输入字段、输出字段和字段类型，录入或导入数据，然后训练多个候选模型并进行预测。
 
 当前版本支持：
 
@@ -11,23 +17,33 @@
 - 多候选模型训练、自动推荐、手动启用模型
 - 本地 Web UI 和桌面 Web 壳
 
-![App screenshot placeholder](docs/screenshot-placeholder.svg)
+### 下载安装包
 
-## Quick Start
+Windows 用户可以直接下载 Release 安装包：
 
-### Windows
+[下载 GenericMLPlatformSetup-0.1.0.exe](https://github.com/weizhiyuan0418/generic_ml_platform/releases/tag/v0.1.0)
+
+安装包 SHA256：
+
+```text
+0E36300045109CA19DD7A655EAEBF173DBCC6C5F2A815E61EB8BEA03BF3F8D91
+```
+
+### 一键启动源码版
+
+Windows:
 
 ```powershell
 .\start.ps1
 ```
 
-或者双击/运行：
+也可以双击运行：
 
 ```bat
 start.bat
 ```
 
-### Linux/macOS
+Linux/macOS:
 
 ```bash
 chmod +x start.sh
@@ -36,15 +52,15 @@ chmod +x start.sh
 
 一键启动脚本会自动：
 
-1. 创建 `.venv` 虚拟环境；
-2. 安装 `requirements.txt`；
-3. 执行数据库迁移；
-4. 启动本地 Django 服务；
-5. 打开浏览器访问应用。
+1. 创建 `.venv` 虚拟环境
+2. 安装 `requirements.txt`
+3. 执行数据库迁移
+4. 启动本地 Django 服务
+5. 打开浏览器访问应用
 
 默认地址是 `http://127.0.0.1:8000/`。如果端口被占用，脚本会在后续端口中选择可用端口。
 
-## 使用流程
+### 使用流程
 
 1. 打开“字段”页，创建输入字段和输出字段。
 2. 打开“数据”页手动录入数据，或在“导入”页上传 CSV/Excel。
@@ -52,7 +68,7 @@ chmod +x start.sh
 4. 系统会为每个输出字段训练多个候选模型，并自动启用推荐模型。
 5. 打开“预测”页，填写输入字段并查看预测结果。
 
-## 示例数据
+### 示例数据
 
 示例数据位于：
 
@@ -66,7 +82,7 @@ examples/sample_regression_classification.csv
 examples/README.md
 ```
 
-## 手动启动
+### 手动启动
 
 如果不使用一键脚本，可以手动运行：
 
@@ -86,7 +102,7 @@ python3 -m venv .venv
 .venv/bin/python manage.py runserver
 ```
 
-## 桌面 Web 壳
+### 桌面 Web 壳
 
 ```powershell
 py -3 desktop_main.py
@@ -94,7 +110,7 @@ py -3 desktop_main.py
 
 桌面壳会自动执行数据库迁移，启动本地服务，并打开同一套 Web UI。
 
-## 环境变量
+### 环境变量
 
 复制 `.env.example` 或直接设置环境变量：
 
@@ -104,14 +120,13 @@ $env:DJANGO_DEBUG="1"
 $env:GENERIC_ML_DATA_DIR="C:\Users\you\AppData\Local\GenericMLPlatform"
 ```
 
-当前开发模式默认 `DJANGO_DEBUG=1`。生产部署时应设置安全的 `DJANGO_SECRET_KEY`，并关闭 debug。
-`GENERIC_ML_DATA_DIR` 可选，用于指定 SQLite 数据库和模型文件的保存目录；源码运行默认保存在项目目录，打包版默认保存在用户本地数据目录。
+当前开发模式默认 `DJANGO_DEBUG=1`。生产部署时应设置安全的 `DJANGO_SECRET_KEY`，并关闭 debug。`GENERIC_ML_DATA_DIR` 可选，用于指定 SQLite 数据库和模型文件的保存目录；源码运行默认保存在项目目录，打包版默认保存在用户本地数据目录。
 
-## 本地 Windows 打包
+### 本地 Windows 打包
 
 需要先安装：
 
-- Python 3.11+
+- Python 3.12+
 - Inno Setup 6
 
 然后运行：
@@ -122,16 +137,16 @@ $env:GENERIC_ML_DATA_DIR="C:\Users\you\AppData\Local\GenericMLPlatform"
 
 脚本会安装 PyInstaller，构建桌面 Web 壳，并尝试用 Inno Setup 生成安装包。输出目录为 `installer_output/`，该目录不会提交到 Git。
 
-## 验证
+### 验证
 
 ```powershell
 py -3 manage.py test
 py -3 tools\verify_project.py
 ```
 
-## 常见问题
+### 常见问题
 
-### PowerShell 不允许运行脚本
+#### PowerShell 不允许运行脚本
 
 使用：
 
@@ -139,7 +154,7 @@ py -3 tools\verify_project.py
 powershell.exe -ExecutionPolicy Bypass -File .\start.ps1
 ```
 
-### 端口 8000 被占用
+#### 端口 8000 被占用
 
 `start.ps1` 和 `start.sh` 会自动尝试后续端口。也可以指定端口：
 
@@ -153,11 +168,11 @@ Linux/macOS:
 PORT=8100 ./start.sh
 ```
 
-### 中文 CSV 乱码
+#### 中文 CSV 乱码
 
 建议使用 UTF-8 或 UTF-8-SIG 编码。项目源码、JSON、CSV 导入导出均按 UTF-8/UTF-8-SIG 处理。
 
-## Contributing
+### 贡献
 
 请阅读 `CONTRIBUTING.md`。提交代码前至少运行：
 
@@ -166,6 +181,187 @@ py -3 manage.py test
 py -3 tools\verify_project.py
 ```
 
-## License
+### 许可证
 
-MIT License. See `LICENSE`.
+本项目使用 MIT License，详见 `LICENSE`。
+
+## English
+
+Generic ML Platform is a local Web application for tabular machine learning. Users can define input fields, output fields, and field types, enter or import datasets, train multiple candidate models, and run predictions.
+
+Current features:
+
+- Custom number of input and output fields
+- Field types: numeric, categorical, boolean, date/time
+- Manual data entry, CSV/Excel import, CSV export
+- Regression and classification tasks
+- Multiple candidate models, automatic recommendation, manual model activation
+- Local Web UI and a desktop Web shell
+
+### Download Installer
+
+Windows users can download the Release installer directly:
+
+[Download GenericMLPlatformSetup-0.1.0.exe](https://github.com/weizhiyuan0418/generic_ml_platform/releases/tag/v0.1.0)
+
+Installer SHA256:
+
+```text
+0E36300045109CA19DD7A655EAEBF173DBCC6C5F2A815E61EB8BEA03BF3F8D91
+```
+
+### One-Click Source Startup
+
+Windows:
+
+```powershell
+.\start.ps1
+```
+
+Or double-click:
+
+```bat
+start.bat
+```
+
+Linux/macOS:
+
+```bash
+chmod +x start.sh
+./start.sh
+```
+
+The startup scripts automatically:
+
+1. Create a `.venv` virtual environment
+2. Install `requirements.txt`
+3. Apply database migrations
+4. Start the local Django server
+5. Open the application in a browser
+
+The default URL is `http://127.0.0.1:8000/`. If the port is occupied, the scripts try later ports automatically.
+
+### Workflow
+
+1. Open the Fields page and create input and output fields.
+2. Open the Data page to enter records manually, or upload CSV/Excel files on the Import page.
+3. Open the Models page and click Train All Outputs.
+4. The system trains multiple candidate models for each output field and activates the recommended model automatically.
+5. Open the Predict page, fill in the input fields, and view prediction results.
+
+### Example Dataset
+
+The sample dataset is located at:
+
+```text
+examples/sample_regression_classification.csv
+```
+
+Field configuration and import steps are documented in:
+
+```text
+examples/README.md
+```
+
+### Manual Startup
+
+If you do not use the one-click scripts, run:
+
+```powershell
+py -3 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe manage.py migrate
+.\.venv\Scripts\python.exe manage.py runserver
+```
+
+Linux/macOS:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python manage.py migrate
+.venv/bin/python manage.py runserver
+```
+
+### Desktop Web Shell
+
+```powershell
+py -3 desktop_main.py
+```
+
+The desktop shell applies database migrations, starts a local server, and opens the same Web UI.
+
+### Environment Variables
+
+Copy `.env.example` or set environment variables directly:
+
+```powershell
+$env:DJANGO_SECRET_KEY="your-secret-key"
+$env:DJANGO_DEBUG="1"
+$env:GENERIC_ML_DATA_DIR="C:\Users\you\AppData\Local\GenericMLPlatform"
+```
+
+Development mode defaults to `DJANGO_DEBUG=1`. For production deployments, set a secure `DJANGO_SECRET_KEY` and disable debug mode. `GENERIC_ML_DATA_DIR` is optional and controls where the SQLite database and model files are stored. Source runs default to the project directory; packaged builds default to the user's local application data directory.
+
+### Local Windows Packaging
+
+Prerequisites:
+
+- Python 3.12+
+- Inno Setup 6
+
+Then run:
+
+```powershell
+.\packaging\build_windows_installer.ps1
+```
+
+The script installs PyInstaller, builds the desktop Web shell, and tries to generate a Windows installer with Inno Setup. Output is written to `installer_output/`, which is ignored by Git.
+
+### Verification
+
+```powershell
+py -3 manage.py test
+py -3 tools\verify_project.py
+```
+
+### FAQ
+
+#### PowerShell blocks script execution
+
+Use:
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File .\start.ps1
+```
+
+#### Port 8000 is already in use
+
+`start.ps1` and `start.sh` automatically try later ports. You can also specify a port:
+
+```powershell
+.\start.ps1 -Port 8100
+```
+
+Linux/macOS:
+
+```bash
+PORT=8100 ./start.sh
+```
+
+#### Chinese CSV text is garbled
+
+Use UTF-8 or UTF-8-SIG encoding. Source code, JSON files, and CSV import/export are handled as UTF-8/UTF-8-SIG.
+
+### Contributing
+
+Read `CONTRIBUTING.md`. Before submitting changes, run at least:
+
+```powershell
+py -3 manage.py test
+py -3 tools\verify_project.py
+```
+
+### License
+
+This project is released under the MIT License. See `LICENSE`.
