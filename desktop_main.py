@@ -3,16 +3,22 @@ from __future__ import annotations
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.request
+from contextlib import redirect_stderr, redirect_stdout
+from io import StringIO
 from pathlib import Path
 
-from PySide6.QtCore import QUrl, Qt
+from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QDesktopServices
-from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QMessageBox, QPushButton, QVBoxLayout, QWidget
 
 
-BASE_DIR = Path(__file__).resolve().parent
+if getattr(sys, "frozen", False):
+    BASE_DIR = Path(sys.executable).resolve().parent
+else:
+    BASE_DIR = Path(__file__).resolve().parent
 
 
 def find_free_port() -> int:
@@ -35,6 +41,47 @@ def wait_for_server(url: str, *, timeout: float = 25.0) -> None:
     raise RuntimeError(f"本地服务启动超时: {last_error}")
 
 
+def show_error(title: str, message: str) -> None:
+    app = QApplication.instance() or QApplication(sys.argv)
+    QMessageBox.critical(None, title, message)
+    _ = app
+
+
+def run_migrations() -> None:
+    import os
+
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "backend.settings")
+    import django
+    from django.core.management import call_command
+
+    stdout = StringIO()
+    stderr = StringIO()
+    try:
+        with redirect_stdout(stdout), redirect_stderr(stderr):
+            django.setup()
+            call_command("migrate", interactive=False, verbosity=1)
+    except Exception as exc:  # noqa: BLE001
+        details = stdout.getvalue() + "\n" + stderr.getvalue()
+        raise RuntimeError(f"数据库初始化失败: {exc}\n\n{details.strip()}") from exc
+
+
+def run_django_server(host_port: str) -> None:
+    import os
+
+    run_migrations()
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "backend.settings")
+    from django.core.management import execute_from_command_line
+
+    execute_from_command_line(["manage.py", "runserver", host_port, "--noreload"])
+
+
+def read_log_tail(path: Path, *, max_chars: int = 4000) -> str:
+    if not path.exists():
+        return ""
+    text = path.read_text(encoding="utf-8", errors="replace")
+    return text[-max_chars:]
+
+
 class DesktopShell(QMainWindow):
     def __init__(self, url: str, process: subprocess.Popen) -> None:
         super().__init__()
@@ -51,7 +98,7 @@ class DesktopShell(QMainWindow):
         title = QLabel("通用机器学习软件已启动")
         title.setAlignment(Qt.AlignLeft)
         title.setStyleSheet("font-size: 18px; font-weight: 700;")
-        info = QLabel(f"本地 Web 地址：{url}")
+        info = QLabel(f"本地 Web 地址: {url}")
         info.setTextInteractionFlags(Qt.TextSelectableByMouse)
         button = QPushButton("打开界面")
         button.clicked.connect(self.open_url)
@@ -76,31 +123,52 @@ class DesktopShell(QMainWindow):
 
 
 def main() -> int:
+    if len(sys.argv) >= 3 and sys.argv[1] == "--serve-django":
+        run_django_server(sys.argv[2])
+        return 0
+
+    try:
+        run_migrations()
+    except Exception as exc:  # noqa: BLE001
+        show_error("启动失败", str(exc))
+        return 1
+
     port = find_free_port()
     url = f"http://127.0.0.1:{port}/"
+    log_dir = Path(tempfile.gettempdir()) / "generic_ml_platform"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    stdout_path = log_dir / "django_stdout.log"
+    stderr_path = log_dir / "django_stderr.log"
+    stdout_fp = stdout_path.open("w", encoding="utf-8")
+    stderr_fp = stderr_path.open("w", encoding="utf-8")
+    server_command = [sys.executable, "--serve-django", f"127.0.0.1:{port}"]
+    if not getattr(sys, "frozen", False):
+        server_command = [sys.executable, str(Path(__file__).resolve()), "--serve-django", f"127.0.0.1:{port}"]
     process = subprocess.Popen(
-        [
-            sys.executable,
-            "manage.py",
-            "runserver",
-            f"127.0.0.1:{port}",
-            "--noreload",
-        ],
+        server_command,
         cwd=str(BASE_DIR),
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        stdout=stdout_fp,
+        stderr=stderr_fp,
     )
     try:
         wait_for_server(url)
-    except Exception:
+    except Exception as exc:  # noqa: BLE001
         process.terminate()
-        raise
+        stdout_fp.close()
+        stderr_fp.close()
+        details = read_log_tail(stderr_path) or read_log_tail(stdout_path)
+        show_error("启动失败", f"{exc}\n\n日志位置:\n{stderr_path}\n\n{details}")
+        return 1
 
     app = QApplication.instance() or QApplication(sys.argv)
     shell = DesktopShell(url, process)
     shell.show()
     shell.open_url()
-    return int(app.exec())
+    try:
+        return int(app.exec())
+    finally:
+        stdout_fp.close()
+        stderr_fp.close()
 
 
 if __name__ == "__main__":

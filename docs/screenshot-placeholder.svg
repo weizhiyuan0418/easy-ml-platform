@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" role="img" aria-label="Application screenshot placeholder">
+  <rect width="960" height="540" fill="#f6f8fb"/>
+  <rect x="24" y="24" width="220" height="492" rx="10" fill="#0f2833"/>
+  <rect x="268" y="48" width="664" height="80" rx="10" fill="#ffffff" stroke="#d9e1ec"/>
+  <rect x="268" y="152" width="198" height="110" rx="10" fill="#ffffff" stroke="#d9e1ec"/>
+  <rect x="490" y="152" width="198" height="110" rx="10" fill="#ffffff" stroke="#d9e1ec"/>
+  <rect x="712" y="152" width="220" height="110" rx="10" fill="#ffffff" stroke="#d9e1ec"/>
+  <rect x="268" y="292" width="664" height="216" rx="10" fill="#ffffff" stroke="#d9e1ec"/>
+  <text x="48" y="72" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700">Generic ML</text>
+  <text x="48" y="130" fill="#c7d7df" font-family="Segoe UI, Arial, sans-serif" font-size="16">Dashboard</text>
+  <text x="48" y="170" fill="#c7d7df" font-family="Segoe UI, Arial, sans-serif" font-size="16">Fields</text>
+  <text x="48" y="210" fill="#c7d7df" font-family="Segoe UI, Arial, sans-serif" font-size="16">Dataset</text>
+  <text x="48" y="250" fill="#c7d7df" font-family="Segoe UI, Arial, sans-serif" font-size="16">Models</text>
+  <text x="48" y="290" fill="#c7d7df" font-family="Segoe UI, Arial, sans-serif" font-size="16">Predict</text>
+  <text x="296" y="96" fill="#172033" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="700">Configurable tabular ML platform</text>
+  <text x="296" y="220" fill="#176b87" font-family="Segoe UI, Arial, sans-serif" font-size="36" font-weight="700">Fields</text>
+  <text x="518" y="220" fill="#176b87" font-family="Segoe UI, Arial, sans-serif" font-size="36" font-weight="700">Data</text>
+  <text x="740" y="220" fill="#176b87" font-family="Segoe UI, Arial, sans-serif" font-size="36" font-weight="700">Models</text>
+  <text x="296" y="340" fill="#667085" font-family="Segoe UI, Arial, sans-serif" font-size="18">Screenshot placeholder - replace with an actual application screenshot.</text>
+  <line x1="296" y1="380" x2="900" y2="380" stroke="#d9e1ec" stroke-width="2"/>
+  <line x1="296" y1="424" x2="900" y2="424" stroke="#d9e1ec" stroke-width="2"/>
+  <line x1="296" y1="468" x2="900" y2="468" stroke="#d9e1ec" stroke-width="2"/>
+</svg>

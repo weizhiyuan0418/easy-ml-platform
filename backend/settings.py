@@ -1,10 +1,27 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+def default_runtime_dir() -> Path:
+    configured_dir = os.environ.get("GENERIC_ML_DATA_DIR")
+    if configured_dir:
+        return Path(configured_dir).expanduser().resolve()
+    if getattr(sys, "frozen", False):
+        local_app_data = os.environ.get("LOCALAPPDATA")
+        if local_app_data:
+            return Path(local_app_data) / "GenericMLPlatform"
+        return Path.home() / ".generic_ml_platform"
+    return BASE_DIR
+
+
+RUNTIME_DIR = default_runtime_dir()
+RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "generic-ml-platform-dev-key")
 DEBUG = os.environ.get("DJANGO_DEBUG", "1").strip().lower() in {"1", "true", "yes", "on"}
@@ -53,7 +70,7 @@ WSGI_APPLICATION = "backend.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "NAME": RUNTIME_DIR / "db.sqlite3",
     }
 }
 
@@ -78,4 +95,4 @@ REST_FRAMEWORK = {
     ],
 }
 
-GENERIC_ML_MODEL_DIR = BASE_DIR / "models_store"
+GENERIC_ML_MODEL_DIR = RUNTIME_DIR / "models_store"

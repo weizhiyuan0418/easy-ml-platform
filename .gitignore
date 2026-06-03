@@ -39,6 +39,7 @@ htmlcov/
 dist/
 build/
 *.spec
+!packaging/*.spec
 installer_output/
 *.msi
 *.exe
