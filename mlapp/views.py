@@ -46,8 +46,46 @@ def _project_from_request(request) -> Project:
     return default_project()
 
 
+def _error_code_for_message(message: str) -> tuple[str | None, dict[str, Any]]:
+    if "项目名称不能为空" in message:
+        return "project_name_required", {}
+    if "请上传文件" in message:
+        return "upload_required", {}
+    if "为必填" in message:
+        return "field_required", {"field": message.split(" 为必填", 1)[0]}
+    if "必须是数值" in message or "必须是有限数值" in message:
+        return "invalid_number", {"field": message.split(" 必须是", 1)[0]}
+    if "必须是布尔值" in message:
+        return "invalid_boolean", {"field": message.split(" 必须是", 1)[0]}
+    if "必须是合法日期/时间" in message:
+        return "invalid_datetime", {"field": message.split(" 必须是", 1)[0]}
+    if "必须是候选值之一" in message:
+        return "invalid_choice", {"field": message.split(" 必须是", 1)[0]}
+    if "字段名不能为空" in message or "字段名只能包含" in message:
+        return "invalid_field_name", {}
+    if "请先配置至少一个输入字段" in message:
+        return "missing_input_fields", {}
+    if "请先配置至少一个输出字段" in message:
+        return "missing_output_fields", {}
+    if "当前项目没有已启用模型" in message:
+        return "no_active_model", {}
+    if "至少需要" in message and "带目标值的数据" in message:
+        return "not_enough_rows", {}
+    if "包含未知字段" in message or "包含未知列" in message:
+        return "unknown_field", {}
+    if "不能启用训练失败的模型" in message:
+        return "failed_model_activation", {}
+    return None, {}
+
+
 def _error_response(exc: Exception, http_status: int = status.HTTP_400_BAD_REQUEST) -> Response:
-    return Response({"success": False, "error": str(exc)}, status=http_status)
+    message = str(exc)
+    error_code, error_params = _error_code_for_message(message)
+    payload: dict[str, Any] = {"success": False, "error": message}
+    if error_code:
+        payload["error_code"] = error_code
+        payload["error_params"] = error_params
+    return Response(payload, status=http_status)
 
 
 class ProjectListView(APIView):

@@ -17,13 +17,20 @@
           <p id="projectName">{{ project.name }}</p>
         </div>
       </div>
+      <label class="language-control">
+        <span data-i18n="language.label">界面语言</span>
+        <select id="languageSelect" aria-label="Language">
+          <option value="zh">中文</option>
+          <option value="en">English</option>
+        </select>
+      </label>
       <nav class="nav">
-        <button class="nav-button active" data-tab="dashboard">概览</button>
-        <button class="nav-button" data-tab="fields">字段</button>
-        <button class="nav-button" data-tab="records">数据</button>
-        <button class="nav-button" data-tab="import">导入</button>
-        <button class="nav-button" data-tab="models">模型</button>
-        <button class="nav-button" data-tab="predict">预测</button>
+        <button class="nav-button active" data-tab="dashboard" data-i18n="nav.dashboard">概览</button>
+        <button class="nav-button" data-tab="fields" data-i18n="nav.fields">字段</button>
+        <button class="nav-button" data-tab="records" data-i18n="nav.records">数据</button>
+        <button class="nav-button" data-tab="import" data-i18n="nav.import">导入</button>
+        <button class="nav-button" data-tab="models" data-i18n="nav.models">模型</button>
+        <button class="nav-button" data-tab="predict" data-i18n="nav.predict">预测</button>
       </nav>
     </aside>
 
@@ -31,25 +38,36 @@
       <section class="tab-page active" id="tab-dashboard">
         <header class="page-header">
           <div>
-            <h2>项目概览</h2>
-            <p>查看字段、数据、模型和缺失值状态。</p>
+            <h2 data-i18n="dashboard.title">项目概览</h2>
+            <p data-i18n="dashboard.subtitle">查看字段、数据、模型和缺失值状态。</p>
           </div>
-          <button class="secondary" id="refreshDashboard">刷新</button>
+          <button class="secondary" id="refreshDashboard" data-i18n="actions.refresh">刷新</button>
         </header>
+        <section class="panel onboarding-panel" id="onboardingPanel">
+          <div class="panel-header">
+            <h3 data-i18n="onboarding.title">快速开始</h3>
+          </div>
+          <ol class="step-list">
+            <li data-i18n="onboarding.stepFields">配置输入字段和输出字段。</li>
+            <li data-i18n="onboarding.stepRecords">录入数据，或导入 CSV/Excel。</li>
+            <li data-i18n="onboarding.stepTrain">训练模型并查看推荐结果。</li>
+            <li data-i18n="onboarding.stepPredict">输入新数据并完成预测。</li>
+          </ol>
+        </section>
         <div class="kpi-grid" id="dashboardKpis"></div>
         <section class="panel">
           <div class="panel-header">
-            <h3>字段缺失情况</h3>
+            <h3 data-i18n="dashboard.missingnessTitle">字段缺失情况</h3>
           </div>
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>字段</th>
-                  <th>角色</th>
-                  <th>已填写</th>
-                  <th>缺失</th>
-                  <th>缺失率</th>
+                  <th data-i18n="tables.field">字段</th>
+                  <th data-i18n="tables.role">角色</th>
+                  <th data-i18n="tables.present">已填写</th>
+                  <th data-i18n="tables.missing">缺失</th>
+                  <th data-i18n="tables.missingRatio">缺失率</th>
                 </tr>
               </thead>
               <tbody id="missingnessBody"></tbody>
@@ -61,55 +79,55 @@
       <section class="tab-page" id="tab-fields">
         <header class="page-header">
           <div>
-            <h2>字段配置</h2>
-            <p>配置输入和输出字段，字段名用于 API、导入导出和模型训练。</p>
+            <h2 data-i18n="fields.title">字段配置</h2>
+            <p data-i18n="fields.subtitle">配置输入和输出字段，字段名用于 API、导入导出和模型训练。</p>
           </div>
         </header>
         <section class="panel">
           <form class="grid-form" id="fieldForm">
             <input type="hidden" id="fieldId">
-            <label>字段名<input id="fieldName" placeholder="density" required></label>
-            <label>显示名<input id="fieldLabel" placeholder="密度" required></label>
-            <label>角色
+            <label><span data-i18n="fields.name">字段名</span><input id="fieldName" data-i18n-placeholder="fields.namePlaceholder" placeholder="density" required></label>
+            <label><span data-i18n="fields.label">显示名</span><input id="fieldLabel" data-i18n-placeholder="fields.labelPlaceholder" placeholder="密度" required></label>
+            <label><span data-i18n="fields.role">角色</span>
               <select id="fieldRole">
-                <option value="input">输入</option>
-                <option value="output">输出</option>
+                <option value="input" data-i18n="roles.input">输入</option>
+                <option value="output" data-i18n="roles.output">输出</option>
               </select>
             </label>
-            <label>类型
+            <label><span data-i18n="fields.type">类型</span>
               <select id="fieldType">
-                <option value="number">数值</option>
-                <option value="category">类别</option>
-                <option value="boolean">布尔</option>
-                <option value="datetime">日期/时间</option>
+                <option value="number" data-i18n="types.number">数值</option>
+                <option value="category" data-i18n="types.category">类别</option>
+                <option value="boolean" data-i18n="types.boolean">布尔</option>
+                <option value="datetime" data-i18n="types.datetime">日期/时间</option>
               </select>
             </label>
-            <label>单位<input id="fieldUnit" placeholder="可空"></label>
-            <label>排序<input id="fieldSort" type="number" value="1" min="1"></label>
-            <label>候选值<input id="fieldChoices" placeholder="类别A,类别B"></label>
-            <label class="inline-check"><input id="fieldRequired" type="checkbox"> 必填</label>
-            <label class="inline-check"><input id="fieldActive" type="checkbox" checked> 启用</label>
+            <label><span data-i18n="fields.unit">单位</span><input id="fieldUnit" data-i18n-placeholder="fields.optionalPlaceholder" placeholder="可空"></label>
+            <label><span data-i18n="fields.sort">排序</span><input id="fieldSort" type="number" value="1" min="1"></label>
+            <label><span data-i18n="fields.choices">候选值</span><input id="fieldChoices" data-i18n-placeholder="fields.choicesPlaceholder" placeholder="类别A,类别B"></label>
+            <label class="inline-check"><input id="fieldRequired" type="checkbox"> <span data-i18n="fields.required">必填</span></label>
+            <label class="inline-check"><input id="fieldActive" type="checkbox" checked> <span data-i18n="fields.active">启用</span></label>
             <div class="form-actions">
-              <button type="submit" class="primary">保存字段</button>
-              <button type="button" class="secondary" id="resetFieldForm">清空</button>
+              <button type="submit" class="primary" id="saveFieldButton" data-i18n="actions.saveField">保存字段</button>
+              <button type="button" class="secondary" id="resetFieldForm" data-i18n="actions.clear">清空</button>
             </div>
           </form>
         </section>
         <section class="panel">
           <div class="panel-header">
-            <h3>字段列表</h3>
+            <h3 data-i18n="fields.listTitle">字段列表</h3>
           </div>
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>字段名</th>
-                  <th>显示名</th>
-                  <th>角色</th>
-                  <th>类型</th>
-                  <th>必填</th>
-                  <th>启用</th>
-                  <th>操作</th>
+                  <th data-i18n="fields.name">字段名</th>
+                  <th data-i18n="fields.label">显示名</th>
+                  <th data-i18n="fields.role">角色</th>
+                  <th data-i18n="fields.type">类型</th>
+                  <th data-i18n="fields.required">必填</th>
+                  <th data-i18n="fields.active">启用</th>
+                  <th data-i18n="tables.actions">操作</th>
                 </tr>
               </thead>
               <tbody id="fieldsBody"></tbody>
@@ -121,24 +139,24 @@
       <section class="tab-page" id="tab-records">
         <header class="page-header">
           <div>
-            <h2>数据集</h2>
-            <p>按当前字段配置动态录入和维护数据。</p>
+            <h2 data-i18n="records.title">数据集</h2>
+            <p data-i18n="records.subtitle">按当前字段配置动态录入和维护数据。</p>
           </div>
-          <a class="secondary link-button" href="/api/export/csv/">导出 CSV</a>
+          <a class="secondary link-button" href="/api/export/csv/" data-i18n="actions.exportCsv">导出 CSV</a>
         </header>
         <section class="panel">
           <form class="grid-form" id="recordForm">
             <input type="hidden" id="recordId">
             <div id="recordInputs" class="dynamic-form"></div>
             <div class="form-actions">
-              <button type="submit" class="primary">保存数据</button>
-              <button type="button" class="secondary" id="resetRecordForm">清空</button>
+              <button type="submit" class="primary" id="saveRecordButton" data-i18n="actions.saveRecord">保存数据</button>
+              <button type="button" class="secondary" id="resetRecordForm" data-i18n="actions.clear">清空</button>
             </div>
           </form>
         </section>
         <section class="panel">
           <div class="panel-header">
-            <h3>记录列表</h3>
+            <h3 data-i18n="records.listTitle">记录列表</h3>
           </div>
           <div class="table-wrap wide">
             <table>
@@ -152,32 +170,32 @@
       <section class="tab-page" id="tab-import">
         <header class="page-header">
           <div>
-            <h2>导入数据</h2>
-            <p>支持 UTF-8/UTF-8-SIG CSV 和 Excel，列名必须匹配字段名。</p>
+            <h2 data-i18n="import.title">导入数据</h2>
+            <p data-i18n="import.subtitle">支持 UTF-8/UTF-8-SIG CSV 和 Excel，列名必须匹配字段名。</p>
           </div>
         </header>
         <section class="panel">
           <form id="importForm" class="import-form">
             <input id="importFile" type="file" accept=".csv,.xlsx">
-            <button type="button" class="secondary" id="previewImport">预检</button>
-            <button type="button" class="primary" id="commitImport">确认导入</button>
+            <button type="button" class="secondary" id="previewImport" data-i18n="actions.previewImport">预检</button>
+            <button type="button" class="primary" id="commitImport" data-i18n="actions.commitImport">确认导入</button>
           </form>
-          <pre id="importOutput" class="output-box"></pre>
+          <div id="importOutput" class="result-box"></div>
         </section>
       </section>
 
       <section class="tab-page" id="tab-models">
         <header class="page-header">
           <div>
-            <h2>模型训练与选择</h2>
-            <p>每个输出目标分别训练候选模型，并按指标自动推荐，用户也可手动启用。</p>
+            <h2 data-i18n="models.title">模型训练与选择</h2>
+            <p data-i18n="models.subtitle">每个输出目标分别训练候选模型，并按指标自动推荐，用户也可手动启用。</p>
           </div>
-          <button class="primary" id="trainModels">训练全部输出</button>
+          <button class="primary" id="trainModels" data-i18n="actions.trainAll">训练全部输出</button>
         </header>
         <section class="panel">
           <div class="panel-header">
-            <h3>模型状态</h3>
-            <button class="secondary" id="refreshModels">刷新</button>
+            <h3 data-i18n="models.statusTitle">模型状态</h3>
+            <button class="secondary" id="refreshModels" data-i18n="actions.refresh">刷新</button>
           </div>
           <div id="modelsList" class="model-list"></div>
         </section>
@@ -186,23 +204,34 @@
       <section class="tab-page" id="tab-predict">
         <header class="page-header">
           <div>
-            <h2>预测</h2>
-            <p>根据当前输入字段动态生成表单，返回所有已启用输出模型的预测结果。</p>
+            <h2 data-i18n="predict.title">预测</h2>
+            <p data-i18n="predict.subtitle">根据当前输入字段动态生成表单，返回所有已启用输出模型的预测结果。</p>
           </div>
         </header>
         <section class="panel">
           <form class="grid-form" id="predictForm">
             <div id="predictInputs" class="dynamic-form"></div>
             <div class="form-actions">
-              <button type="submit" class="primary">开始预测</button>
+              <button type="submit" class="primary" id="predictButton" data-i18n="actions.predict">开始预测</button>
             </div>
           </form>
-          <pre id="predictOutput" class="output-box"></pre>
+          <div id="predictOutput" class="result-box"></div>
         </section>
       </section>
     </main>
   </div>
-  <div id="toast" class="toast"></div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="confirmModal" class="modal-backdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <h3 id="confirmTitle"></h3>
+      <p id="confirmMessage"></p>
+      <div class="modal-actions">
+        <button type="button" class="secondary" id="confirmCancel" data-i18n="actions.cancel">取消</button>
+        <button type="button" class="danger" id="confirmOk" data-i18n="actions.confirm">确认</button>
+      </div>
+    </div>
+  </div>
   <script src="{% static 'mlapp/app.js' %}"></script>
 </body>
 </html>

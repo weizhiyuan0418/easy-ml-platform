@@ -116,6 +116,7 @@ class GenericMlPlatformTests(TestCase):
             content_type="application/json",
         )
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["error_code"], "invalid_field_name")
 
         payload = {
             "name": "valid_name",
@@ -127,6 +128,23 @@ class GenericMlPlatformTests(TestCase):
         second = self.client.post("/api/fields/", data=json.dumps(payload), content_type="application/json")
         self.assertEqual(first.status_code, 201)
         self.assertEqual(second.status_code, 400)
+
+    def test_api_error_response_keeps_error_and_adds_stable_code(self) -> None:
+        upload_response = self.client.post("/api/import/preview/")
+        upload_payload = upload_response.json()
+        self.assertEqual(upload_response.status_code, 400)
+        self.assertIn("error", upload_payload)
+        self.assertEqual(upload_payload["error_code"], "upload_required")
+
+        train_response = self.client.post(
+            "/api/train/",
+            data=json.dumps({"project_id": self.project.pk}),
+            content_type="application/json",
+        )
+        train_payload = train_response.json()
+        self.assertEqual(train_response.status_code, 400)
+        self.assertIn("error", train_payload)
+        self.assertEqual(train_payload["error_code"], "missing_output_fields")
 
     def test_csv_import_accepts_utf8_sig_and_chinese_headers(self) -> None:
         self.add_standard_fields()
