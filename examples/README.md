@@ -2,6 +2,8 @@
 
 `sample_regression_classification.csv` 是一个 UTF-8 示例数据集，用于验证字段配置、导入、训练和预测流程。
 
+最快方式：启动应用后点击侧边栏的“加载示例项目”。应用会自动创建字段和示例数据，无需手动配置。
+
 ## 字段建议
 
 在界面“字段”页按下面配置字段：
@@ -18,7 +20,7 @@
 ## 使用流程
 
 1. 启动应用。
-2. 在“字段”页创建上表字段。
-3. 在“导入”页上传 `examples/sample_regression_classification.csv`。
+2. 点击“加载示例项目”，或在“字段”页手动创建上表字段。
+3. 如选择手动流程，在“导入”页上传 `examples/sample_regression_classification.csv`。
 4. 在“模型”页点击“训练全部输出”。
 5. 在“预测”页输入 `x`、`kind`、`flag`、`when`，查看 `score` 和 `level` 的预测结果。

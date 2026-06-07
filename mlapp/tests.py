@@ -128,6 +128,7 @@ class GenericMlPlatformTests(TestCase):
         second = self.client.post("/api/fields/", data=json.dumps(payload), content_type="application/json")
         self.assertEqual(first.status_code, 201)
         self.assertEqual(second.status_code, 400)
+        self.assertEqual(second.json()["error_code"], "duplicate_field_name")
 
     def test_api_error_response_keeps_error_and_adds_stable_code(self) -> None:
         upload_response = self.client.post("/api/import/preview/")
@@ -176,6 +177,7 @@ class GenericMlPlatformTests(TestCase):
         self.add_training_records()
         result = train_project_models(self.project)
         self.assertTrue(result["success"], result)
+        self.assertEqual(result["training_status"], "completed")
 
         active_runs = ModelRun.objects.filter(project=self.project, is_active=True)
         recommended_runs = ModelRun.objects.filter(project=self.project, is_recommended=True)
@@ -186,6 +188,47 @@ class GenericMlPlatformTests(TestCase):
         level_run = active_runs.get(target_field__name="level")
         self.assertIn("mae", score_run.metrics)
         self.assertIn("f1_macro", level_run.metrics)
+
+    def test_training_with_insufficient_data_returns_failed_status(self) -> None:
+        self.add_standard_fields()
+        response = self.client.post(
+            "/api/train/",
+            data=json.dumps({"project_id": self.project.pk}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+        payload = response.json()
+        self.assertFalse(payload["success"])
+        self.assertEqual(payload["training_status"], "failed")
+        self.assertEqual(payload["successful_target_count"], 0)
+        self.assertEqual(payload["failed_target_count"], 2)
+        self.assertEqual(payload["targets"]["score"]["error_code"], "not_enough_rows")
+
+    def test_sample_project_endpoint_creates_independent_project(self) -> None:
+        response = self.client.post("/api/examples/sample-project/")
+        self.assertEqual(response.status_code, 201, response.content)
+        payload = response.json()
+        project_id = payload["project"]["id"]
+        self.assertEqual(payload["record_count"], 12)
+        self.assertEqual(Project.objects.get(pk=project_id).fields.count(), 6)
+        self.assertEqual(DatasetRecord.objects.filter(project_id=project_id).count(), 12)
+        self.assertNotEqual(project_id, self.project.pk)
+
+    def test_csv_template_uses_active_field_names_for_selected_project(self) -> None:
+        self.add_standard_fields()
+        response = self.client.get(f"/api/export/template/csv/?project_id={self.project.pk}")
+        self.assertEqual(response.status_code, 200)
+        header = response.content.decode("utf-8-sig").splitlines()[0]
+        self.assertEqual(header, "x,kind,flag,when,score,level")
+
+    def test_project_scoped_field_api_keeps_projects_separate(self) -> None:
+        other = Project.objects.create(name="另一个项目")
+        FieldDefinition.objects.create(project=other, name="other_x", label="Other X", role="input", field_type="number")
+        FieldDefinition.objects.create(project=self.project, name="x", label="X", role="input", field_type="number")
+        response = self.client.get(f"/api/fields/?project_id={self.project.pk}")
+        self.assertEqual(response.status_code, 200)
+        names = [field["name"] for field in response.json()["fields"]]
+        self.assertEqual(names, ["x"])
 
     def test_manual_model_activation_overrides_active_model(self) -> None:
         self.add_standard_fields()

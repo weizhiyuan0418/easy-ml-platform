@@ -55,6 +55,13 @@ MISSING_VALUES = {None, ""}
 MIN_TRAINING_ROWS = 3
 
 
+class UserFacingError(ValueError):
+    def __init__(self, code: str, message: str, params: dict[str, Any] | None = None) -> None:
+        super().__init__(message)
+        self.code = code
+        self.params = params or {}
+
+
 @dataclass(frozen=True)
 class Candidate:
     key: str
@@ -96,12 +103,69 @@ def default_project() -> Project:
     return project
 
 
+def _unique_project_name(base_name: str) -> str:
+    existing = set(Project.objects.filter(name__startswith=base_name).values_list("name", flat=True))
+    if base_name not in existing:
+        return base_name
+    suffix = 2
+    while f"{base_name} {suffix}" in existing:
+        suffix += 1
+    return f"{base_name} {suffix}"
+
+
+def create_sample_project() -> dict[str, Any]:
+    sample_fields = [
+        {"name": "x", "label": "Input X", "role": FIELD_ROLE_INPUT, "field_type": FIELD_TYPE_NUMBER, "required": True, "sort_order": 1},
+        {"name": "kind", "label": "Category Kind", "role": FIELD_ROLE_INPUT, "field_type": FIELD_TYPE_CATEGORY, "choices": ["A", "B"], "sort_order": 2},
+        {"name": "flag", "label": "Flag", "role": FIELD_ROLE_INPUT, "field_type": FIELD_TYPE_BOOLEAN, "sort_order": 3},
+        {"name": "when", "label": "Date", "role": FIELD_ROLE_INPUT, "field_type": FIELD_TYPE_DATETIME, "sort_order": 4},
+        {"name": "score", "label": "Score", "role": FIELD_ROLE_OUTPUT, "field_type": FIELD_TYPE_NUMBER, "required": True, "sort_order": 5},
+        {"name": "level", "label": "Level", "role": FIELD_ROLE_OUTPUT, "field_type": FIELD_TYPE_CATEGORY, "choices": ["low", "high"], "required": True, "sort_order": 6},
+    ]
+    sample_rows = [
+        {"x": 0, "kind": "A", "flag": True, "when": "2026-01-01T00:00:00", "score": 2, "level": "low"},
+        {"x": 1, "kind": "B", "flag": False, "when": "2026-01-02T00:00:00", "score": 5, "level": "low"},
+        {"x": 2, "kind": "A", "flag": True, "when": "2026-01-03T00:00:00", "score": 8, "level": "low"},
+        {"x": 3, "kind": "B", "flag": False, "when": "2026-01-04T00:00:00", "score": 11, "level": "low"},
+        {"x": 4, "kind": "A", "flag": True, "when": "2026-01-05T00:00:00", "score": 14, "level": "low"},
+        {"x": 5, "kind": "B", "flag": False, "when": "2026-01-06T00:00:00", "score": 17, "level": "low"},
+        {"x": 6, "kind": "A", "flag": True, "when": "2026-01-07T00:00:00", "score": 20, "level": "high"},
+        {"x": 7, "kind": "B", "flag": False, "when": "2026-01-08T00:00:00", "score": 23, "level": "high"},
+        {"x": 8, "kind": "A", "flag": True, "when": "2026-01-09T00:00:00", "score": 26, "level": "high"},
+        {"x": 9, "kind": "B", "flag": False, "when": "2026-01-10T00:00:00", "score": 29, "level": "high"},
+        {"x": 10, "kind": "A", "flag": True, "when": "2026-01-11T00:00:00", "score": 32, "level": "high"},
+        {"x": 11, "kind": "B", "flag": False, "when": "2026-01-12T00:00:00", "score": 35, "level": "high"},
+    ]
+    with transaction.atomic():
+        project = Project.objects.create(
+            name=_unique_project_name("Sample Project"),
+            description="Built-in sample project for trying Easy ML Platform.",
+        )
+        fields = []
+        for field in sample_fields:
+            field_payload = dict(field)
+            field_payload.setdefault("choices", [])
+            fields.append(FieldDefinition(project=project, **field_payload))
+        FieldDefinition.objects.bulk_create(fields)
+        created_fields = list(project.fields.order_by("sort_order", "id"))
+        DatasetRecord.objects.bulk_create(
+            DatasetRecord(project=project, values=validate_record_payload(project, row))
+            for row in sample_rows
+        )
+    return {
+        "success": True,
+        "project": serialize_project(project),
+        "fields": [serialize_field(field) for field in created_fields],
+        "record_count": len(sample_rows),
+    }
+
+
 def normalize_field_name(name: Any) -> str:
     text = str(name or "").strip()
     if not text:
-        raise ValueError("字段名不能为空")
+        raise UserFacingError("invalid_field_name", "字段名不能为空")
     if not FIELD_NAME_PATTERN.match(text):
-        raise ValueError("字段名只能包含字母、数字、下划线，且不能以字母或下划线开头")
+        raise UserFacingError("invalid_field_name", "字段名只能包含字母、数字、下划线，且不能以字母或下划线开头")
     return text
 
 
@@ -168,16 +232,16 @@ def normalize_value(field: FieldDefinition, value: Any, *, required_override: bo
     required = field.required if required_override is None else required_override
     if _is_missing(value):
         if required:
-            raise ValueError(f"{field.label} 为必填")
+            raise UserFacingError("field_required", f"{field.label} 为必填", {"field": field.label})
         return None
 
     if field.field_type == FIELD_TYPE_NUMBER:
         try:
             number = float(value)
         except (TypeError, ValueError) as exc:
-            raise ValueError(f"{field.label} 必须是数值") from exc
+            raise UserFacingError("invalid_number", f"{field.label} 必须是数值", {"field": field.label}) from exc
         if not math.isfinite(number):
-            raise ValueError(f"{field.label} 必须是有限数值")
+            raise UserFacingError("invalid_number", f"{field.label} 必须是有限数值", {"field": field.label})
         return number
 
     if field.field_type == FIELD_TYPE_BOOLEAN:
@@ -188,32 +252,32 @@ def normalize_value(field: FieldDefinition, value: Any, *, required_override: bo
             return True
         if text in {"0", "false", "no", "n", "否", "不"}:
             return False
-        raise ValueError(f"{field.label} 必须是布尔值")
+        raise UserFacingError("invalid_boolean", f"{field.label} 必须是布尔值", {"field": field.label})
 
     if field.field_type == FIELD_TYPE_DATETIME:
         try:
             parsed = pd.to_datetime(value, errors="raise")
         except Exception as exc:
-            raise ValueError(f"{field.label} 必须是合法日期/时间") from exc
+            raise UserFacingError("invalid_datetime", f"{field.label} 必须是合法日期/时间", {"field": field.label}) from exc
         if pd.isna(parsed):
-            raise ValueError(f"{field.label} 必须是合法日期/时间")
+            raise UserFacingError("invalid_datetime", f"{field.label} 必须是合法日期/时间", {"field": field.label})
         return parsed.isoformat()
 
     text = str(value).strip()
     choices = [str(item) for item in field.choices or [] if str(item).strip()]
     if choices and text not in choices:
-        raise ValueError(f"{field.label} 必须是候选值之一: {choices}")
+        raise UserFacingError("invalid_choice", f"{field.label} 必须是候选值之一: {choices}", {"field": field.label})
     return text
 
 
 def validate_record_payload(project: Project, payload: dict[str, Any], *, partial: bool = False) -> dict[str, Any]:
     if not isinstance(payload, dict):
-        raise ValueError("数据必须是 JSON 对象")
+        raise UserFacingError("invalid_payload", "数据必须是 JSON 对象")
     fields = list(project.fields.filter(is_active=True).order_by("sort_order", "id"))
     field_map = {field.name: field for field in fields}
     unknown = sorted([key for key in payload.keys() if key not in field_map])
     if unknown:
-        raise ValueError(f"包含未知字段: {unknown}")
+        raise UserFacingError("unknown_field", f"包含未知字段: {unknown}", {"fields": unknown})
 
     normalized: dict[str, Any] = {}
     for field in fields:
@@ -225,7 +289,7 @@ def validate_record_payload(project: Project, payload: dict[str, Any], *, partia
 
 def create_or_update_field(project: Project, payload: dict[str, Any], *, field: FieldDefinition | None = None) -> FieldDefinition:
     if not isinstance(payload, dict):
-        raise ValueError("字段配置必须是 JSON 对象")
+        raise UserFacingError("invalid_payload", "字段配置必须是 JSON 对象")
 
     target = field or FieldDefinition(project=project)
     editable = {
@@ -241,7 +305,7 @@ def create_or_update_field(project: Project, payload: dict[str, Any], *, field: 
     }
     unknown = sorted([key for key in payload.keys() if key not in editable])
     if unknown:
-        raise ValueError(f"包含未知字段: {unknown}")
+        raise UserFacingError("unknown_field", f"包含未知字段: {unknown}", {"fields": unknown})
 
     if field is None or "name" in payload:
         target.name = normalize_field_name(payload.get("name"))
@@ -251,10 +315,19 @@ def create_or_update_field(project: Project, payload: dict[str, Any], *, field: 
         if attr in payload:
             setattr(target, attr, payload[attr])
 
+    duplicate = FieldDefinition.objects.filter(project=project, name=target.name)
+    if target.pk:
+        duplicate = duplicate.exclude(pk=target.pk)
+    if duplicate.exists():
+        raise UserFacingError("duplicate_field_name", f"字段名已存在: {target.name}", {"field": target.name})
+
     try:
         target.full_clean()
     except ValidationError as exc:
-        raise ValueError(exc.message_dict if hasattr(exc, "message_dict") else exc.messages) from exc
+        raise UserFacingError(
+            "field_validation_failed",
+            str(exc.message_dict if hasattr(exc, "message_dict") else exc.messages),
+        ) from exc
     target.save()
     return target
 
@@ -344,6 +417,14 @@ def preview_import(project: Project, uploaded_file: Any) -> dict[str, Any]:
     return {
         "success": len(errors) == 0,
         "headers": headers,
+        "mapped_headers": [
+            {"source": header, "field": header_map.get(header)}
+            for header in headers
+            if header in header_map
+        ],
+        "unknown_headers": unknown_headers,
+        "duplicate_headers": duplicate_headers,
+        "missing_headers": missing_headers,
         "row_count": len(rows),
         "valid_count": len(valid_payloads),
         "error_count": len(errors),
@@ -386,6 +467,17 @@ def export_csv_response(project: Project) -> HttpResponse:
         writer.writerow({field.name: record.values.get(field.name) for field in fields})
     response = HttpResponse(output.getvalue(), content_type="text/csv; charset=utf-8-sig")
     filename = f"{slugify(project.name) or 'dataset'}.csv"
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
+
+def export_csv_template_response(project: Project) -> HttpResponse:
+    fields = list(project.fields.filter(is_active=True).order_by("sort_order", "id"))
+    output = StringIO()
+    writer = csv.DictWriter(output, fieldnames=[field.name for field in fields])
+    writer.writeheader()
+    response = HttpResponse(output.getvalue(), content_type="text/csv; charset=utf-8-sig")
+    filename = f"{slugify(project.name) or 'dataset'}_template.csv"
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
 
@@ -452,7 +544,7 @@ def prepare_training_frame(project: Project, target_field: FieldDefinition) -> t
         project.fields.filter(role=FIELD_ROLE_INPUT, is_active=True).order_by("sort_order", "id")
     )
     if not input_fields:
-        raise ValueError("请先配置至少一个输入字段")
+        raise UserFacingError("missing_input_fields", "请先配置至少一个输入字段")
 
     rows: list[dict[str, Any]] = []
     targets: list[Any] = []
@@ -464,7 +556,11 @@ def prepare_training_frame(project: Project, target_field: FieldDefinition) -> t
         targets.append(target)
 
     if len(rows) < MIN_TRAINING_ROWS:
-        raise ValueError(f"{target_field.label} 至少需要 {MIN_TRAINING_ROWS} 条带目标值的数据")
+        raise UserFacingError(
+            "not_enough_rows",
+            f"{target_field.label} 至少需要 {MIN_TRAINING_ROWS} 条带目标值的数据",
+            {"field": target_field.label, "min_rows": MIN_TRAINING_ROWS},
+        )
 
     X = pd.DataFrame(rows)
     y = pd.Series(targets, name=target_field.name)
@@ -627,9 +723,9 @@ def train_project_models(project: Project, *, target_field_id: int | None = None
         targets = targets.filter(id=target_field_id)
     target_list = list(targets)
     if not target_list:
-        raise ValueError("请先配置至少一个输出字段")
+        raise UserFacingError("missing_output_fields", "请先配置至少一个输出字段")
 
-    payload: dict[str, Any] = {"success": True, "targets": {}}
+    payload: dict[str, Any] = {"success": True, "training_status": "completed", "targets": {}}
     for target_field in target_list:
         task_type = output_task_type(target_field)
         runs: list[ModelRun] = []
@@ -750,19 +846,32 @@ def train_project_models(project: Project, *, target_field_id: int | None = None
                 "runs": [serialize_model_run(ModelRun.objects.get(pk=run.pk)) for run in runs],
             }
         except Exception as exc:  # noqa: BLE001
-            payload["targets"][target_field.name] = {
+            error_payload: dict[str, Any] = {
                 "success": False,
                 "task_type": task_type,
                 "error": str(exc),
                 "runs": [],
             }
+            if isinstance(exc, UserFacingError):
+                error_payload["error_code"] = exc.code
+                error_payload["error_params"] = exc.params
+            payload["targets"][target_field.name] = error_payload
+    successful_count = sum(1 for target in payload["targets"].values() if target.get("success"))
+    failed_count = len(payload["targets"]) - successful_count
+    payload["successful_target_count"] = successful_count
+    payload["failed_target_count"] = failed_count
+    if successful_count == 0:
+        payload["success"] = False
+        payload["training_status"] = "failed"
+    elif failed_count:
+        payload["training_status"] = "partial"
     return payload
 
 
 def activate_model(project: Project, model_run_id: int) -> ModelRun:
     run = ModelRun.objects.select_related("target_field").get(project=project, pk=model_run_id)
     if run.error_message or not run.model_path:
-        raise ValueError("不能启用训练失败的模型")
+        raise UserFacingError("failed_model_activation", "不能启用训练失败的模型")
     ModelRun.objects.filter(project=project, target_field=run.target_field).update(is_active=False)
     run.is_active = True
     run.save(update_fields=["is_active"])
@@ -809,7 +918,7 @@ def predict(project: Project, payload: dict[str, Any]) -> dict[str, Any]:
         .order_by("target_field__sort_order", "id")
     )
     if not active_runs:
-        raise ValueError("当前项目没有已启用模型，请先训练或启用模型")
+        raise UserFacingError("no_active_model", "当前项目没有已启用模型，请先训练或启用模型")
 
     results = {}
     for run in active_runs:

@@ -13,7 +13,10 @@ log() {
 
 find_python() {
   for candidate in python3 python; do
-    if command -v "$candidate" >/dev/null 2>&1 && "$candidate" --version 2>/dev/null | grep -q 'Python 3'; then
+    if command -v "$candidate" >/dev/null 2>&1 && "$candidate" - <<'PY' >/dev/null 2>&1; then
+import sys
+raise SystemExit(0 if sys.version_info >= (3, 12) else 1)
+PY
       printf '%s' "$candidate"
       return 0
     fi
@@ -49,7 +52,7 @@ find_free_port() {
 }
 
 PYTHON_BIN="$(find_python)" || {
-  echo "Python 3 was not found. Please install Python 3.11+ and retry." >&2
+  echo "Python 3.12+ was not found. Please install Python 3.12 or newer and retry." >&2
   exit 1
 }
 

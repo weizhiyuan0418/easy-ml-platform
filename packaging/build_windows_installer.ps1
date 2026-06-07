@@ -28,6 +28,11 @@ if (-not $IsWindows -and $PSVersionTable.PSEdition -eq "Core") {
 
 $Root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 Set-Location $Root
+$Version = (Get-Content -Path (Join-Path $Root "VERSION") -Encoding UTF8 | Select-Object -First 1).Trim()
+$InstallerConfig = Get-Content -Path (Join-Path $Root "packaging\installer.iss") -Encoding UTF8 -Raw
+if ($InstallerConfig -notmatch "#define MyAppVersion `"$([regex]::Escape($Version))`"") {
+    throw "VERSION ($Version) does not match packaging\installer.iss."
+}
 
 $python = "py"
 $pythonArgs = @("-3")
@@ -37,6 +42,7 @@ try {
     $python = "python"
     $pythonArgs = @()
 }
+Invoke-Checked $python @($pythonArgs + @("-c", "import sys; raise SystemExit(0 if sys.version_info >= (3, 12) else 1)"))
 
 $venvPython = Join-Path $Root ".venv\Scripts\python.exe"
 if (-not (Test-Path $venvPython)) {

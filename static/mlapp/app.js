@@ -1,8 +1,17 @@
 const STORAGE_LANGUAGE_KEY = "easy_ml_platform_language";
+const STORAGE_PROJECT_KEY = "easy_ml_platform_project_id";
 
 const state = {
   fields: [],
   records: [],
+  projects: [],
+  currentProjectId: null,
+  dashboard: null,
+  lastImportResult: null,
+  lastImportMode: "",
+  lastPredictionResults: {},
+  lastPredictionAction: "",
+  lastTrainingResult: null,
   language: initialLanguage(),
 };
 
@@ -20,10 +29,18 @@ const translations = {
       saveRecord: "保存数据",
       clear: "清空",
       exportCsv: "导出 CSV",
+      downloadTemplate: "下载模板",
       previewImport: "预检",
       commitImport: "确认导入",
       trainAll: "训练全部输出",
       predict: "开始预测",
+      createProject: "新建",
+      loadSample: "加载示例项目",
+      goFields: "配置字段",
+      goRecords: "录入数据",
+      goImport: "导入数据",
+      goModels: "训练模型",
+      goPredict: "去预测",
       edit: "编辑",
       delete: "删除",
       activate: "启用",
@@ -48,12 +65,26 @@ const translations = {
       kpiRuns: "模型运行",
       kpiActiveModels: "启用模型",
     },
+    projects: {
+      title: "项目",
+      current: "当前项目",
+      namePlaceholder: "新项目名称",
+      created: "项目已创建",
+      sampleCreated: "示例项目已创建",
+    },
     onboarding: {
       title: "快速开始",
-      stepFields: "配置输入字段和输出字段。",
-      stepRecords: "录入数据，或导入 CSV/Excel。",
-      stepTrain: "训练模型并查看推荐结果。",
-      stepPredict: "输入新数据并完成预测。",
+      complete: "已完成",
+      current: "当前步骤",
+      pending: "待完成",
+      fieldsTitle: "配置字段",
+      fieldsDesc: "创建至少一个输入字段和一个输出字段，或直接加载示例项目。",
+      recordsTitle: "添加数据",
+      recordsDesc: "手动录入记录，或导入 CSV/Excel 数据。",
+      trainTitle: "训练模型",
+      trainDesc: "系统会为每个输出字段训练候选模型并启用推荐模型。",
+      predictTitle: "开始预测",
+      predictDesc: "输入新样本，查看所有已启用输出模型的预测结果。",
     },
     fields: {
       title: "字段配置",
@@ -98,6 +129,9 @@ const translations = {
       commitSuccess: "导入完成",
       commitFailed: "导入失败",
       summary: "列数 {columns}，有效行 {valid}，错误 {errors}",
+      matchedColumns: "已匹配列：{count}",
+      missingColumns: "缺少必填列：{columns}",
+      unknownColumns: "未知列：{columns}",
       imported: "已导入 {count} 条记录。",
       noErrors: "没有发现格式错误。",
       errorsTitle: "错误列表",
@@ -118,6 +152,11 @@ const translations = {
       recommended: "推荐",
       failed: "训练失败",
       trained: "训练完成",
+      trainingPartial: "部分目标训练完成",
+      trainingFailed: "训练未完成",
+      targetFailed: "该输出目标训练失败",
+      nextStep: "下一步建议",
+      needMoreRows: "请补充更多带目标值的数据后重新训练。",
       activated: "模型已启用",
     },
     predict: {
@@ -125,6 +164,7 @@ const translations = {
       subtitle: "根据当前输入字段动态生成表单，返回所有已启用输出模型的预测结果。",
       emptyInputs: "还没有输入字段。请先在“字段”页创建输入字段。",
       emptyResults: "预测结果会显示在这里。",
+      noActiveAction: "当前项目还没有已启用模型，请先完成训练或在模型页启用一个模型。",
       resultTitle: "预测结果",
       prediction: "预测值",
       model: "使用模型",
@@ -146,6 +186,7 @@ const translations = {
     },
     errors: {
       project_name_required: "项目名称不能为空。",
+      duplicate_project_name: "项目名称已存在，请换一个名称。",
       upload_required: "请先选择 CSV 或 Excel 文件。",
       field_required: "{field} 为必填项。",
       invalid_number: "{field} 必须是有效数值。",
@@ -153,6 +194,9 @@ const translations = {
       invalid_datetime: "{field} 必须是合法日期/时间。",
       invalid_choice: "{field} 必须是候选值之一。",
       invalid_field_name: "字段名只能包含字母、数字、下划线，且不能以数字开头。",
+      duplicate_field_name: "字段名已存在，请换一个字段名。",
+      invalid_payload: "请求数据格式不正确。",
+      field_validation_failed: "字段配置校验失败，请检查角色、类型和候选值。",
       missing_input_fields: "请先配置至少一个输入字段，再训练或预测。",
       missing_output_fields: "请先配置至少一个输出字段，再训练模型。",
       no_active_model: "当前项目没有已启用模型。请先训练模型，或在模型页启用一个模型。",
@@ -174,10 +218,18 @@ const translations = {
       saveRecord: "Save Data",
       clear: "Clear",
       exportCsv: "Export CSV",
+      downloadTemplate: "Download Template",
       previewImport: "Preview",
       commitImport: "Import",
       trainAll: "Train All Outputs",
       predict: "Predict",
+      createProject: "Create",
+      loadSample: "Load Sample Project",
+      goFields: "Configure Fields",
+      goRecords: "Enter Data",
+      goImport: "Import Data",
+      goModels: "Train Models",
+      goPredict: "Go Predict",
       edit: "Edit",
       delete: "Delete",
       activate: "Activate",
@@ -202,12 +254,26 @@ const translations = {
       kpiRuns: "Model Runs",
       kpiActiveModels: "Active Models",
     },
+    projects: {
+      title: "Projects",
+      current: "Current Project",
+      namePlaceholder: "New project name",
+      created: "Project created",
+      sampleCreated: "Sample project created",
+    },
     onboarding: {
       title: "Quick Start",
-      stepFields: "Configure input and output fields.",
-      stepRecords: "Enter records or import CSV/Excel data.",
-      stepTrain: "Train models and review the recommended model.",
-      stepPredict: "Enter new values and run predictions.",
+      complete: "Done",
+      current: "Current",
+      pending: "Pending",
+      fieldsTitle: "Configure Fields",
+      fieldsDesc: "Create at least one input field and one output field, or load the sample project.",
+      recordsTitle: "Add Data",
+      recordsDesc: "Enter records manually or import CSV/Excel data.",
+      trainTitle: "Train Models",
+      trainDesc: "The app trains candidates for each output field and activates the recommended model.",
+      predictTitle: "Run Predictions",
+      predictDesc: "Enter a new sample and view predictions from all active output models.",
     },
     fields: {
       title: "Field Configuration",
@@ -252,6 +318,9 @@ const translations = {
       commitSuccess: "Import completed",
       commitFailed: "Import failed",
       summary: "{columns} columns, {valid} valid rows, {errors} errors",
+      matchedColumns: "Matched columns: {count}",
+      missingColumns: "Missing required columns: {columns}",
+      unknownColumns: "Unknown columns: {columns}",
       imported: "Imported {count} records.",
       noErrors: "No format errors found.",
       errorsTitle: "Errors",
@@ -272,6 +341,11 @@ const translations = {
       recommended: "Recommended",
       failed: "Failed",
       trained: "Training completed",
+      trainingPartial: "Some targets trained",
+      trainingFailed: "Training did not complete",
+      targetFailed: "This output target failed to train",
+      nextStep: "Next step",
+      needMoreRows: "Add more records with target values, then train again.",
       activated: "Model activated",
     },
     predict: {
@@ -279,6 +353,7 @@ const translations = {
       subtitle: "Generate an input form from current input fields and return predictions from all active output models.",
       emptyInputs: "No input fields yet. Create input fields on the Fields page first.",
       emptyResults: "Prediction results will appear here.",
+      noActiveAction: "This project has no active model yet. Train models or activate one on the Models page first.",
       resultTitle: "Prediction Result",
       prediction: "Prediction",
       model: "Model",
@@ -300,6 +375,7 @@ const translations = {
     },
     errors: {
       project_name_required: "Project name is required.",
+      duplicate_project_name: "This project name already exists. Use a different name.",
       upload_required: "Choose a CSV or Excel file first.",
       field_required: "{field} is required.",
       invalid_number: "{field} must be a valid number.",
@@ -307,6 +383,9 @@ const translations = {
       invalid_datetime: "{field} must be a valid date/time.",
       invalid_choice: "{field} must be one of the configured choices.",
       invalid_field_name: "Field names may only contain letters, numbers, and underscores, and cannot start with a number.",
+      duplicate_field_name: "This field name already exists. Use a different field name.",
+      invalid_payload: "The request payload is not valid.",
+      field_validation_failed: "Field validation failed. Check role, type, and choices.",
       missing_input_fields: "Configure at least one input field before training or predicting.",
       missing_output_fields: "Configure at least one output field before training models.",
       no_active_model: "No active model exists for this project. Train models or activate a model on the Models page first.",
@@ -360,13 +439,37 @@ function setLanguage(language) {
   state.language = language === "zh" ? "zh" : "en";
   localStorage.setItem(STORAGE_LANGUAGE_KEY, state.language);
   applyI18n();
+  renderProjects();
   renderDynamicForms();
+  if (state.dashboard) renderOnboarding(state.dashboard.totals);
+  if (state.lastImportResult) renderImportResult(state.lastImportResult, state.lastImportMode);
+  if (state.lastPredictionAction) {
+    renderPredictionAction(t("predict.noActiveAction"));
+  } else {
+    renderPredictionResults(state.lastPredictionResults);
+  }
   refreshAll().catch((error) => toast(localizeError(error), "error"));
 }
 
 function csrfToken() {
   const match = document.cookie.match(/csrftoken=([^;]+)/);
   return match ? decodeURIComponent(match[1]) : "";
+}
+
+function projectlessPath(path) {
+  return path.startsWith("/api/projects/") || path.startsWith("/api/examples/");
+}
+
+function projectAwarePath(path) {
+  if (!state.currentProjectId || projectlessPath(path)) return path;
+  const separator = path.includes("?") ? "&" : "?";
+  return `${path}${separator}project_id=${encodeURIComponent(state.currentProjectId)}`;
+}
+
+function updateProjectLinks() {
+  const suffix = state.currentProjectId ? `?project_id=${encodeURIComponent(state.currentProjectId)}` : "";
+  document.getElementById("exportCsvLink").href = `/api/export/csv/${suffix}`;
+  document.getElementById("downloadTemplate").href = `/api/export/template/csv/${suffix}`;
 }
 
 async function api(path, options = {}) {
@@ -376,7 +479,7 @@ async function api(path, options = {}) {
   }
   const token = csrfToken();
   if (token) headers["X-CSRFToken"] = token;
-  const response = await fetch(path, {
+  const response = await fetch(projectAwarePath(path), {
     ...options,
     headers,
   });
@@ -397,6 +500,13 @@ function localizeError(error) {
     return t(`errors.${error.code}`, { ...error.params, field: error.params?.field || "" });
   }
   return error?.message || t("toast.unknownError");
+}
+
+function localizeErrorPayload(payload = {}) {
+  if (payload.error_code) {
+    return t(`errors.${payload.error_code}`, { ...(payload.error_params || {}), field: payload.error_params?.field || "" });
+  }
+  return payload.error || t("toast.unknownError");
 }
 
 function toast(message, type = "info") {
@@ -467,8 +577,150 @@ function emptyBlock(message) {
   return `<div class="empty-state">${escapeHtml(message)}</div>`;
 }
 
+function renderProjects() {
+  const select = document.getElementById("projectSelect");
+  select.innerHTML = state.projects
+    .map((project) => `<option value="${project.id}" ${project.id === state.currentProjectId ? "selected" : ""}>${escapeHtml(project.name)}</option>`)
+    .join("");
+  const current = state.projects.find((project) => project.id === state.currentProjectId);
+  document.getElementById("projectName").textContent = current?.name || "Default Project";
+  updateProjectLinks();
+}
+
+async function refreshProjects(preferredProjectId = null) {
+  const data = await api("/api/projects/");
+  state.projects = data.projects || [];
+  const saved = Number(localStorage.getItem(STORAGE_PROJECT_KEY));
+  const candidate = Number(preferredProjectId || state.currentProjectId || saved || 0);
+  const hasCandidate = state.projects.some((project) => project.id === candidate);
+  state.currentProjectId = hasCandidate ? candidate : (state.projects[0]?.id || null);
+  if (state.currentProjectId) localStorage.setItem(STORAGE_PROJECT_KEY, String(state.currentProjectId));
+  renderProjects();
+}
+
+function clearTransientResults() {
+  state.lastImportResult = null;
+  state.lastImportMode = "";
+  state.lastPredictionResults = {};
+  state.lastPredictionAction = "";
+  state.lastTrainingResult = null;
+  document.getElementById("importOutput").innerHTML = "";
+  renderPredictionResults({});
+}
+
+async function changeProject(projectId) {
+  state.currentProjectId = Number(projectId);
+  localStorage.setItem(STORAGE_PROJECT_KEY, String(state.currentProjectId));
+  clearTransientResults();
+  resetFieldForm();
+  resetRecordForm();
+  renderProjects();
+  await refreshAll();
+}
+
+async function createProject() {
+  const button = document.getElementById("createProjectButton");
+  const input = document.getElementById("newProjectName");
+  const name = input.value.trim();
+  if (!name) {
+    toast(t("errors.project_name_required"), "error");
+    input.focus();
+    return;
+  }
+  setBusy(button, true, "actions.saving");
+  try {
+    const data = await api("/api/projects/", {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    });
+    input.value = "";
+    await refreshProjects(data.project.id);
+    clearTransientResults();
+    await refreshAll();
+    toast(t("projects.created"), "success");
+  } finally {
+    setBusy(button, false);
+  }
+}
+
+async function loadSampleProject() {
+  const button = document.getElementById("loadSampleProject");
+  setBusy(button, true, "actions.saving");
+  try {
+    const data = await api("/api/examples/sample-project/", { method: "POST", body: JSON.stringify({}) });
+    await refreshProjects(data.project.id);
+    clearTransientResults();
+    await refreshAll();
+    switchTab("dashboard");
+    toast(t("projects.sampleCreated"), "success");
+  } finally {
+    setBusy(button, false);
+  }
+}
+
+function stepStatus(done, previousDone) {
+  if (done) return "complete";
+  return previousDone ? "current" : "pending";
+}
+
+function renderOnboarding(totals) {
+  const fieldsReady = totals.input_count > 0 && totals.output_count > 0;
+  const recordsReady = totals.record_count > 0;
+  const modelsReady = totals.active_model_count > 0;
+  const steps = [
+    {
+      title: t("onboarding.fieldsTitle"),
+      desc: t("onboarding.fieldsDesc"),
+      action: t("actions.goFields"),
+      tab: "fields",
+      done: fieldsReady,
+      previousDone: true,
+    },
+    {
+      title: t("onboarding.recordsTitle"),
+      desc: t("onboarding.recordsDesc"),
+      action: recordsReady ? t("actions.goImport") : t("actions.goRecords"),
+      tab: recordsReady ? "import" : "records",
+      done: recordsReady,
+      previousDone: fieldsReady,
+    },
+    {
+      title: t("onboarding.trainTitle"),
+      desc: t("onboarding.trainDesc"),
+      action: t("actions.goModels"),
+      tab: "models",
+      done: modelsReady,
+      previousDone: fieldsReady && recordsReady,
+    },
+    {
+      title: t("onboarding.predictTitle"),
+      desc: t("onboarding.predictDesc"),
+      action: t("actions.goPredict"),
+      tab: "predict",
+      done: false,
+      previousDone: modelsReady,
+    },
+  ];
+  document.getElementById("onboardingSteps").innerHTML = steps
+    .map((step, index) => {
+      const status = stepStatus(step.done, step.previousDone);
+      return `
+        <article class="onboarding-step ${status}">
+          <div class="step-index">${index + 1}</div>
+          <div>
+            <strong>${escapeHtml(step.title)}</strong>
+            <p>${escapeHtml(step.desc)}</p>
+            <span class="step-status">${escapeHtml(t(`onboarding.${status}`))}</span>
+          </div>
+          <button type="button" class="secondary compact" data-step-tab="${step.tab}">${escapeHtml(step.action)}</button>
+        </article>`;
+    })
+    .join("");
+}
+
 async function refreshDashboard() {
   const data = await api("/api/dashboard/summary/");
+  state.dashboard = data;
   document.getElementById("projectName").textContent = data.project.name;
   const totals = data.totals;
   const kpis = [
@@ -482,6 +734,7 @@ async function refreshDashboard() {
   document.getElementById("dashboardKpis").innerHTML = kpis
     .map(([labelKey, value]) => `<div class="kpi"><span>${escapeHtml(t(labelKey))}</span><strong>${escapeHtml(value)}</strong></div>`)
     .join("");
+  renderOnboarding(totals);
   document.getElementById("onboardingPanel").hidden = Boolean(totals.field_count && totals.record_count && totals.active_model_count);
   document.getElementById("missingnessBody").innerHTML = data.missingness.length
     ? data.missingness
@@ -586,6 +839,7 @@ function confirmAction({ title, message, confirmLabel = t("actions.confirm") }) 
   const messageEl = document.getElementById("confirmMessage");
   const ok = document.getElementById("confirmOk");
   const cancel = document.getElementById("confirmCancel");
+  const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   titleEl.textContent = title;
   messageEl.textContent = message;
   ok.textContent = confirmLabel;
@@ -595,8 +849,10 @@ function confirmAction({ title, message, confirmLabel = t("actions.confirm") }) 
       ok.removeEventListener("click", onOk);
       cancel.removeEventListener("click", onCancel);
       modal.removeEventListener("click", onBackdrop);
+      document.removeEventListener("keydown", onKeyDown);
       modal.hidden = true;
       applyI18n();
+      previousFocus?.focus();
       resolve(value);
     };
     const onOk = () => cleanup(true);
@@ -604,9 +860,13 @@ function confirmAction({ title, message, confirmLabel = t("actions.confirm") }) 
     const onBackdrop = (event) => {
       if (event.target === modal) cleanup(false);
     };
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") cleanup(false);
+    };
     ok.addEventListener("click", onOk);
     cancel.addEventListener("click", onCancel);
     modal.addEventListener("click", onBackdrop);
+    document.addEventListener("keydown", onKeyDown);
     ok.focus();
   });
 }
@@ -764,6 +1024,8 @@ function importFormData() {
 }
 
 function renderImportResult(data, mode) {
+  state.lastImportResult = data;
+  state.lastImportMode = mode;
   const success = data.success !== false;
   const title = mode === "preview"
     ? (success ? t("import.previewPassed") : t("import.previewFailed"))
@@ -776,11 +1038,21 @@ function renderImportResult(data, mode) {
       errors: data.error_count || errors.length || 0,
     })
     : t("import.imported", { count: data.imported_count || 0 });
+  const matchedCount = (data.mapped_headers || []).length;
+  const unknownColumns = (data.unknown_headers || []).join(", ") || "-";
+  const missingColumns = (data.missing_headers || []).join(", ") || "-";
   document.getElementById("importOutput").innerHTML = `
     <div class="result-summary ${success ? "success" : "error"}">
       <strong>${escapeHtml(title)}</strong>
       <p>${escapeHtml(summary)}</p>
     </div>
+    ${mode === "preview" || data.headers ? `
+      <div class="import-checks">
+        <span>${escapeHtml(t("import.matchedColumns", { count: matchedCount }))}</span>
+        <span>${escapeHtml(t("import.unknownColumns", { columns: unknownColumns }))}</span>
+        <span>${escapeHtml(t("import.missingColumns", { columns: missingColumns }))}</span>
+      </div>
+    ` : ""}
     ${errors.length ? `
       <h4>${escapeHtml(t("import.errorsTitle"))}</h4>
       <ul class="error-list">
@@ -828,6 +1100,18 @@ function formatMetrics(metrics) {
     .join("")}</div>`;
 }
 
+function trainingNoticeForTarget(targetName) {
+  const target = state.lastTrainingResult?.targets?.[targetName];
+  if (!target || target.success !== false) return "";
+  const message = localizeErrorPayload(target);
+  return `
+    <div class="result-summary error compact-summary">
+      <strong>${escapeHtml(t("models.targetFailed"))}</strong>
+      <p>${escapeHtml(message)}</p>
+      <p><b>${escapeHtml(t("models.nextStep"))}:</b> ${escapeHtml(t("models.needMoreRows"))}</p>
+    </div>`;
+}
+
 async function refreshModels() {
   const data = await api("/api/models/summary/");
   document.getElementById("modelsList").innerHTML = data.targets.length
@@ -836,6 +1120,7 @@ async function refreshModels() {
         <div class="model-card">
           <h4>${escapeHtml(target.target.label)} <small>${escapeHtml(target.target.name)}</small></h4>
           <p>${escapeHtml(t("models.taskType"))}: ${escapeHtml(t(`taskTypes.${target.task_type}`))}</p>
+          ${trainingNoticeForTarget(target.target.name)}
           <div class="table-wrap">
             <table>
               <thead>
@@ -875,10 +1160,17 @@ async function trainModels() {
   setBusy(button, true, "actions.training");
   document.getElementById("modelsList").innerHTML = `<div class="model-card loading-card">${escapeHtml(t("actions.training"))}</div>`;
   try {
-    await api("/api/train/", { method: "POST", body: JSON.stringify({}) });
+    const data = await api("/api/train/", { method: "POST", body: JSON.stringify({}), allowFailure: true });
+    state.lastTrainingResult = data;
     await refreshModels();
     await refreshDashboard();
-    toast(t("models.trained"), "success");
+    if (data.training_status === "failed") {
+      toast(t("models.trainingFailed"), "error");
+    } else if (data.training_status === "partial") {
+      toast(t("models.trainingPartial"), "info");
+    } else {
+      toast(t("models.trained"), "success");
+    }
   } finally {
     setBusy(button, false);
   }
@@ -892,6 +1184,8 @@ async function activateModel(id) {
 }
 
 function renderPredictionResults(results) {
+  state.lastPredictionResults = results || {};
+  state.lastPredictionAction = "";
   const entries = Object.entries(results || {});
   if (!entries.length) {
     document.getElementById("predictOutput").innerHTML = emptyBlock(t("predict.emptyResults"));
@@ -915,6 +1209,16 @@ function renderPredictionResults(results) {
     .join("");
 }
 
+function renderPredictionAction(message) {
+  state.lastPredictionAction = "no_active_model";
+  document.getElementById("predictOutput").innerHTML = `
+    <div class="result-summary info">
+      <strong>${escapeHtml(t("predict.resultTitle"))}</strong>
+      <p>${escapeHtml(message)}</p>
+      <button type="button" class="secondary compact" data-step-tab="models">${escapeHtml(t("actions.goModels"))}</button>
+    </div>`;
+}
+
 async function runPredict(event) {
   event.preventDefault();
   const button = document.getElementById("predictButton");
@@ -924,6 +1228,11 @@ async function runPredict(event) {
     const payload = collectValues("predict", fields);
     const data = await api("/api/predict/", { method: "POST", body: JSON.stringify(payload) });
     renderPredictionResults(data.results);
+  } catch (error) {
+    if (error instanceof ApiError && error.code === "no_active_model") {
+      renderPredictionAction(t("predict.noActiveAction"));
+    }
+    throw error;
   } finally {
     setBusy(button, false);
   }
@@ -940,6 +1249,7 @@ document.addEventListener("click", async (event) => {
   const target = event.target;
   if (!(target instanceof HTMLElement)) return;
   if (target.matches(".nav-button")) switchTab(target.dataset.tab);
+  if (target.dataset.stepTab) switchTab(target.dataset.stepTab);
   if (target.dataset.editField) editField(target.dataset.editField);
   if (target.dataset.deleteField) {
     try { await deleteField(target.dataset.deleteField); } catch (error) { toast(localizeError(error), "error"); }
@@ -954,6 +1264,17 @@ document.addEventListener("click", async (event) => {
 });
 
 document.getElementById("languageSelect").addEventListener("change", (event) => setLanguage(event.target.value));
+document.getElementById("projectSelect").addEventListener("change", (event) => {
+  changeProject(event.target.value).catch((error) => toast(localizeError(error), "error"));
+});
+document.getElementById("createProjectButton").addEventListener("click", () => createProject().catch((error) => toast(localizeError(error), "error")));
+document.getElementById("newProjectName").addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    createProject().catch((error) => toast(localizeError(error), "error"));
+  }
+});
+document.getElementById("loadSampleProject").addEventListener("click", () => loadSampleProject().catch((error) => toast(localizeError(error), "error")));
 document.getElementById("fieldForm").addEventListener("submit", (event) => saveField(event).catch((error) => toast(localizeError(error), "error")));
 document.getElementById("recordForm").addEventListener("submit", (event) => saveRecord(event).catch((error) => toast(localizeError(error), "error")));
 document.getElementById("predictForm").addEventListener("submit", (event) => runPredict(event).catch((error) => toast(localizeError(error), "error")));
@@ -967,4 +1288,7 @@ document.getElementById("commitImport").addEventListener("click", () => runImpor
 
 applyI18n();
 renderPredictionResults({});
-refreshAll().then(resetFieldForm).catch((error) => toast(localizeError(error), "error"));
+refreshProjects()
+  .then(refreshAll)
+  .then(resetFieldForm)
+  .catch((error) => toast(localizeError(error), "error"));

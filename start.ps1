@@ -32,6 +32,7 @@ function Find-Python {
     foreach ($candidate in $candidates) {
         try {
             $version = & $candidate.File @($candidate.Args + @("--version")) 2>$null
+            & $candidate.File @($candidate.Args + @("-c", "import sys; raise SystemExit(0 if sys.version_info >= (3, 12) else 1)")) 2>$null
             if ($LASTEXITCODE -eq 0 -and $version -match "Python 3\.") {
                 return $candidate
             }
@@ -39,7 +40,7 @@ function Find-Python {
             continue
         }
     }
-    throw "Python 3 was not found. Please install Python 3.11+ and retry."
+    throw "Python 3.12+ was not found. Please install Python 3.12 or newer and retry."
 }
 
 function Test-PortAvailable {

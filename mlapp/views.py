@@ -10,12 +10,15 @@ from rest_framework.views import APIView
 
 from .models import DatasetRecord, FieldDefinition, Project
 from .services import (
+    UserFacingError,
     activate_model,
     commit_import,
+    create_sample_project,
     create_or_update_field,
     dashboard_summary,
     default_project,
     export_csv_response,
+    export_csv_template_response,
     model_summary,
     predict,
     preview_import,
@@ -80,7 +83,10 @@ def _error_code_for_message(message: str) -> tuple[str | None, dict[str, Any]]:
 
 def _error_response(exc: Exception, http_status: int = status.HTTP_400_BAD_REQUEST) -> Response:
     message = str(exc)
-    error_code, error_params = _error_code_for_message(message)
+    if isinstance(exc, UserFacingError):
+        error_code, error_params = exc.code, exc.params
+    else:
+        error_code, error_params = _error_code_for_message(message)
     payload: dict[str, Any] = {"success": False, "error": message}
     if error_code:
         payload["error_code"] = error_code
@@ -100,12 +106,22 @@ class ProjectListView(APIView):
         try:
             name = str(payload.get("name") or "").strip()
             if not name:
-                raise ValueError("项目名称不能为空")
+                raise UserFacingError("project_name_required", "项目名称不能为空")
+            if Project.objects.filter(name=name).exists():
+                raise UserFacingError("duplicate_project_name", f"项目名称已存在: {name}", {"project": name})
             project = Project.objects.create(
                 name=name,
                 description=str(payload.get("description") or "").strip(),
             )
             return Response({"success": True, "project": serialize_project(project)}, status=status.HTTP_201_CREATED)
+        except Exception as exc:  # noqa: BLE001
+            return _error_response(exc)
+
+
+class ExampleProjectView(APIView):
+    def post(self, request):
+        try:
+            return Response(create_sample_project(), status=status.HTTP_201_CREATED)
         except Exception as exc:  # noqa: BLE001
             return _error_response(exc)
 
@@ -226,6 +242,12 @@ class ExportCsvView(APIView):
     def get(self, request):
         project = _project_from_request(request)
         return export_csv_response(project)
+
+
+class ExportCsvTemplateView(APIView):
+    def get(self, request):
+        project = _project_from_request(request)
+        return export_csv_template_response(project)
 
 
 class TrainView(APIView):

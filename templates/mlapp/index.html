@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Easy ML Platform</title>
-  <link rel="stylesheet" href="{% static 'mlapp/app.css' %}">
+  <link rel="stylesheet" href="{% static 'mlapp/app.css' %}?v=0.2.0">
 </head>
 <body>
   <div class="app-shell">
@@ -24,6 +24,18 @@
           <option value="en">English</option>
         </select>
       </label>
+      <section class="project-control" aria-labelledby="projectControlTitle">
+        <h2 id="projectControlTitle" data-i18n="projects.title">项目</h2>
+        <label>
+          <span data-i18n="projects.current">当前项目</span>
+          <select id="projectSelect" aria-label="Project"></select>
+        </label>
+        <div class="project-create">
+          <input id="newProjectName" data-i18n-placeholder="projects.namePlaceholder" placeholder="新项目名称">
+          <button type="button" class="secondary compact" id="createProjectButton" data-i18n="actions.createProject">新建</button>
+        </div>
+        <button type="button" class="secondary compact wide-button" id="loadSampleProject" data-i18n="actions.loadSample">加载示例项目</button>
+      </section>
       <nav class="nav">
         <button class="nav-button active" data-tab="dashboard" data-i18n="nav.dashboard">概览</button>
         <button class="nav-button" data-tab="fields" data-i18n="nav.fields">字段</button>
@@ -47,12 +59,7 @@
           <div class="panel-header">
             <h3 data-i18n="onboarding.title">快速开始</h3>
           </div>
-          <ol class="step-list">
-            <li data-i18n="onboarding.stepFields">配置输入字段和输出字段。</li>
-            <li data-i18n="onboarding.stepRecords">录入数据，或导入 CSV/Excel。</li>
-            <li data-i18n="onboarding.stepTrain">训练模型并查看推荐结果。</li>
-            <li data-i18n="onboarding.stepPredict">输入新数据并完成预测。</li>
-          </ol>
+          <div class="step-list" id="onboardingSteps"></div>
         </section>
         <div class="kpi-grid" id="dashboardKpis"></div>
         <section class="panel">
@@ -142,7 +149,7 @@
             <h2 data-i18n="records.title">数据集</h2>
             <p data-i18n="records.subtitle">按当前字段配置动态录入和维护数据。</p>
           </div>
-          <a class="secondary link-button" href="/api/export/csv/" data-i18n="actions.exportCsv">导出 CSV</a>
+          <a class="secondary link-button" id="exportCsvLink" href="/api/export/csv/" data-i18n="actions.exportCsv">导出 CSV</a>
         </header>
         <section class="panel">
           <form class="grid-form" id="recordForm">
@@ -177,6 +184,7 @@
         <section class="panel">
           <form id="importForm" class="import-form">
             <input id="importFile" type="file" accept=".csv,.xlsx">
+            <a class="secondary link-button" id="downloadTemplate" href="/api/export/template/csv/" data-i18n="actions.downloadTemplate">下载模板</a>
             <button type="button" class="secondary" id="previewImport" data-i18n="actions.previewImport">预检</button>
             <button type="button" class="primary" id="commitImport" data-i18n="actions.commitImport">确认导入</button>
           </form>
@@ -232,6 +240,6 @@
       </div>
     </div>
   </div>
-  <script src="{% static 'mlapp/app.js' %}"></script>
+  <script src="{% static 'mlapp/app.js' %}?v=0.2.0"></script>
 </body>
 </html>
