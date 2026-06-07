@@ -1,4 +1,4 @@
-# Generated manually for the generic ML platform.
+# Generated manually for Easy ML Platform.
 from __future__ import annotations
 
 import django.db.models.deletion

@@ -700,8 +700,8 @@ def _safe_classification_metrics(y_true: pd.Series, y_pred: Any) -> dict[str, An
 def _model_storage_paths(project: Project, target_field: FieldDefinition, candidate_key: str) -> tuple[Path, Path]:
     safe_project = slugify(project.name) or f"project_{project.id}"
     stem = f"{safe_project}_{target_field.name}_{candidate_key}_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')}"
-    model_path = Path(settings.GENERIC_ML_MODEL_DIR) / "trained" / f"{stem}.joblib"
-    meta_path = Path(settings.GENERIC_ML_MODEL_DIR) / "metadata" / f"{stem}.json"
+    model_path = Path(settings.EASY_ML_MODEL_DIR) / "trained" / f"{stem}.joblib"
+    meta_path = Path(settings.EASY_ML_MODEL_DIR) / "metadata" / f"{stem}.json"
     model_path.parent.mkdir(parents=True, exist_ok=True)
     meta_path.parent.mkdir(parents=True, exist_ok=True)
     return model_path, meta_path

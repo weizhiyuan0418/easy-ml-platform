@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Django command-line entrypoint for the generic ML platform."""
+"""Django command-line entrypoint for Easy ML Platform."""
 from __future__ import annotations
 
 import os
