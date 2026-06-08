@@ -31,12 +31,12 @@ Easy ML Platform 是一个初学者开发的早期项目，用于学习和尝试
 
 Windows 用户可以直接下载 Release 安装包：
 
-[下载 EasyMLPlatformSetup-0.2.0.exe](https://github.com/weizhiyuan0418/easy-ml-platform/releases/tag/v0.2.0)
+[下载 EasyMLPlatformSetup-0.2.1.exe](https://github.com/weizhiyuan0418/easy-ml-platform/releases/tag/v0.2.1)
 
 安装包 SHA256：
 
 ```text
-3B379A6A72B5D7620AE89ED8DD5F5DBEF1EC55D0D0323D403E35C80A24743A93
+3F0632DC99DF2CF6A42C091A78B20824AD7057B1FBF6D6C75B45AD3EE9546F1C
 ```
 
 ### 一键启动源码版
@@ -186,6 +186,23 @@ PORT=8100 ./start.sh
 
 建议使用 UTF-8 或 UTF-8-SIG 编码。项目源码、JSON、CSV 导入导出均按 UTF-8/UTF-8-SIG 处理。
 
+#### 安装包为什么会有安全提示
+
+这是个人学习项目，Windows 安装包目前没有代码签名证书。请只从本仓库 Release 页面下载，并用 README 中的 SHA256 校验值核对文件。
+
+#### 数据保存在哪里
+
+源码运行默认把 SQLite 数据库和模型文件保存在项目目录。安装包运行默认保存在当前 Windows 用户的本地应用数据目录。可以通过 `EASY_ML_DATA_DIR` 指定保存位置。
+
+#### 适合多大的数据集
+
+当前版本适合小型本地表格数据实验。训练在本地同步执行，数据量较大时会变慢或占用较多内存。
+
+### 路线图与版本记录
+
+- `ROADMAP.md`：短期计划和不计划支持的范围。
+- `CHANGELOG.md`：版本变化记录。
+
 ### 贡献
 
 请阅读 `CONTRIBUTING.md`。提交代码前至少运行：
@@ -225,12 +242,12 @@ Current limitations:
 
 Windows users can download the Release installer directly:
 
-[Download EasyMLPlatformSetup-0.2.0.exe](https://github.com/weizhiyuan0418/easy-ml-platform/releases/tag/v0.2.0)
+[Download EasyMLPlatformSetup-0.2.1.exe](https://github.com/weizhiyuan0418/easy-ml-platform/releases/tag/v0.2.1)
 
 Installer SHA256:
 
 ```text
-3B379A6A72B5D7620AE89ED8DD5F5DBEF1EC55D0D0323D403E35C80A24743A93
+3F0632DC99DF2CF6A42C091A78B20824AD7057B1FBF6D6C75B45AD3EE9546F1C
 ```
 
 ### One-Click Source Startup
@@ -379,6 +396,23 @@ PORT=8100 ./start.sh
 #### Chinese CSV text is garbled
 
 Use UTF-8 or UTF-8-SIG encoding. Source code, JSON files, and CSV import/export are handled as UTF-8/UTF-8-SIG.
+
+#### Why does Windows show a security warning for the installer?
+
+This is a personal learning project, and the Windows installer is not code-signed yet. Download it only from this repository's Release page and verify the file with the SHA256 value in this README.
+
+#### Where is data stored?
+
+Source runs store the SQLite database and model files in the project directory by default. Packaged builds store them in the current Windows user's local application data directory by default. You can set `EASY_ML_DATA_DIR` to choose a different location.
+
+#### What dataset size is suitable?
+
+The current version is intended for small local tabular data experiments. Training runs synchronously on the local machine, so larger datasets can become slow or memory-heavy.
+
+### Roadmap and Changelog
+
+- `ROADMAP.md`: short-term plans and intentionally unsupported scope.
+- `CHANGELOG.md`: release history.
 
 ### Contributing
 
