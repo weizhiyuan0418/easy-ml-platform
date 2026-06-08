@@ -3,11 +3,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 
 from .models import DatasetRecord, FieldDefinition, ModelRun, Project
 from .services import (
+    cleanup_orphan_model_artifacts,
     commit_import,
     preview_import,
     train_project_models,
@@ -230,6 +232,69 @@ class GenericMlPlatformTests(TestCase):
         names = [field["name"] for field in response.json()["fields"]]
         self.assertEqual(names, ["x"])
 
+    def test_invalid_project_id_returns_stable_error_code(self) -> None:
+        response = self.client.get("/api/fields/?project_id=not-a-number")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["error_code"], "invalid_project_id")
+
+    def test_record_api_supports_pagination_and_full_compat(self) -> None:
+        self.add_standard_fields()
+        self.add_training_records(count=7)
+
+        full_response = self.client.get(f"/api/records/?project_id={self.project.pk}")
+        self.assertEqual(full_response.status_code, 200)
+        full_payload = full_response.json()
+        self.assertEqual(len(full_payload["records"]), 7)
+        self.assertFalse(full_payload["pagination"]["enabled"])
+
+        page_response = self.client.get(f"/api/records/?project_id={self.project.pk}&page=2&page_size=3")
+        self.assertEqual(page_response.status_code, 200)
+        page_payload = page_response.json()
+        self.assertEqual(len(page_payload["records"]), 3)
+        self.assertTrue(page_payload["pagination"]["enabled"])
+        self.assertEqual(page_payload["pagination"]["total_count"], 7)
+        self.assertEqual(page_payload["pagination"]["page"], 2)
+        self.assertTrue(page_payload["pagination"]["has_previous"])
+        self.assertTrue(page_payload["pagination"]["has_next"])
+
+        invalid_response = self.client.get(f"/api/records/?project_id={self.project.pk}&page=bad&page_size=3")
+        self.assertEqual(invalid_response.status_code, 400)
+        self.assertEqual(invalid_response.json()["error_code"], "invalid_pagination")
+
+    def test_dashboard_summary_includes_data_quality(self) -> None:
+        self.add_standard_fields()
+        DatasetRecord.objects.create(
+            project=self.project,
+            values={
+                "x": 1,
+                "kind": "A",
+                "flag": True,
+                "when": "2026-02-01T00:00:00",
+                "score": 3,
+                "level": "low",
+            },
+        )
+        DatasetRecord.objects.create(
+            project=self.project,
+            values={
+                "x": 5,
+                "kind": "B",
+                "flag": False,
+                "when": "2026-02-02T00:00:00",
+                "score": 9,
+            },
+        )
+
+        response = self.client.get(f"/api/dashboard/summary/?project_id={self.project.pk}")
+        self.assertEqual(response.status_code, 200)
+        data_quality = response.json()["data_quality"]
+        self.assertEqual(data_quality["missing_field_count"], 1)
+        numeric = {item["field"]: item for item in data_quality["numeric_ranges"]}
+        self.assertEqual(numeric["x"]["min"], 1)
+        self.assertEqual(numeric["x"]["max"], 5)
+        categories = {item["field"]: item for item in data_quality["category_uniques"]}
+        self.assertEqual(categories["kind"]["unique_count"], 2)
+
     def test_manual_model_activation_overrides_active_model(self) -> None:
         self.add_standard_fields()
         self.add_training_records()
@@ -254,6 +319,99 @@ class GenericMlPlatformTests(TestCase):
         alternative.refresh_from_db()
         self.assertFalse(current.is_active)
         self.assertTrue(alternative.is_active)
+
+    def test_model_activation_requires_model_run_id(self) -> None:
+        response = self.client.post(
+            "/api/models/activate/",
+            data=json.dumps({"project_id": self.project.pk}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["error_code"], "model_run_id_required")
+
+    def test_successful_retraining_deletes_replaced_model_files(self) -> None:
+        self.add_standard_fields()
+        self.add_training_records()
+        train_project_models(self.project)
+        old_runs = list(ModelRun.objects.filter(project=self.project))
+        old_paths = [Path(run.model_path) for run in old_runs if run.model_path]
+        self.assertTrue(old_paths)
+
+        result = train_project_models(self.project)
+        self.assertTrue(result["success"], result)
+        self.assertFalse(ModelRun.objects.filter(pk__in=[run.pk for run in old_runs]).exists())
+        self.assertTrue(all(not path.exists() for path in old_paths))
+        self.assertEqual(ModelRun.objects.filter(project=self.project, is_active=True).count(), 2)
+
+    def test_training_failure_preserves_previous_active_model(self) -> None:
+        self.add_standard_fields()
+        self.add_training_records()
+        train_project_models(self.project)
+        active_before = list(ModelRun.objects.filter(project=self.project, is_active=True).values_list("pk", flat=True))
+        self.assertEqual(len(active_before), 2)
+
+        DatasetRecord.objects.filter(project=self.project).delete()
+        result = train_project_models(self.project)
+        self.assertFalse(result["success"])
+        self.assertEqual(result["training_status"], "failed")
+        active_after = list(ModelRun.objects.filter(project=self.project, is_active=True).values_list("pk", flat=True))
+        self.assertEqual(sorted(active_after), sorted(active_before))
+        self.assertIsNotNone(result["targets"]["score"]["preserved_active_model"])
+
+    def test_missing_model_file_prediction_returns_stable_error_code(self) -> None:
+        self.add_standard_fields()
+        self.add_training_records()
+        train_project_models(self.project)
+        active = ModelRun.objects.filter(project=self.project, is_active=True).first()
+        self.assertIsNotNone(active)
+        Path(active.model_path).unlink(missing_ok=True)
+
+        response = self.client.post(
+            "/api/predict/",
+            data=json.dumps(
+                {
+                    "project_id": self.project.pk,
+                    "x": 5,
+                    "kind": "A",
+                    "flag": True,
+                    "when": "2026-02-05T00:00:00",
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["error_code"], "model_file_missing")
+
+    def test_import_file_errors_return_stable_error_codes(self) -> None:
+        self.add_standard_fields()
+        empty = SimpleUploadedFile("empty.csv", b"", content_type="text/csv")
+        empty_response = self.client.post(
+            f"/api/import/preview/?project_id={self.project.pk}",
+            data={"file": empty},
+        )
+        self.assertEqual(empty_response.status_code, 400)
+        self.assertEqual(empty_response.json()["error_code"], "empty_upload")
+
+        text = SimpleUploadedFile("data.txt", b"x,score\n1,2\n", content_type="text/plain")
+        type_response = self.client.post(
+            f"/api/import/preview/?project_id={self.project.pk}",
+            data={"file": text},
+        )
+        self.assertEqual(type_response.status_code, 400)
+        self.assertEqual(type_response.json()["error_code"], "unsupported_file_type")
+
+    def test_cleanup_orphan_model_artifacts_dry_run(self) -> None:
+        orphan_dir = Path(settings.EASY_ML_MODEL_DIR) / "trained"
+        orphan_dir.mkdir(parents=True, exist_ok=True)
+        orphan = orphan_dir / "orphan_test.joblib"
+        orphan.write_text("orphan", encoding="utf-8")
+        try:
+            result = cleanup_orphan_model_artifacts(delete=False)
+            self.assertIn(str(orphan), result["orphans"])
+            self.assertEqual(result["deleted_count"], 0)
+            self.assertTrue(orphan.exists())
+        finally:
+            orphan.unlink(missing_ok=True)
 
     def test_api_end_to_end_training_and_prediction(self) -> None:
         self.add_standard_fields()

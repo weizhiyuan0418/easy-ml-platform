@@ -4,6 +4,7 @@ const STORAGE_PROJECT_KEY = "easy_ml_platform_project_id";
 const state = {
   fields: [],
   records: [],
+  recordsPagination: { page: 1, page_size: 50, total_count: 0, total_pages: 1 },
   projects: [],
   currentProjectId: null,
   dashboard: null,
@@ -58,6 +59,11 @@ const translations = {
       subtitle: "查看字段、数据、模型和缺失值状态。",
       missingnessTitle: "字段缺失情况",
       emptyMissingness: "还没有可统计的字段。先在“字段”页配置输入和输出字段。",
+      dataQualityTitle: "数据质量摘要",
+      emptyDataQuality: "还没有足够的数据质量信息。添加数据后这里会显示数值范围和类别数量。",
+      missingFields: "{count} 个字段存在缺失值。",
+      numericRange: "{label}: 最小 {min}，最大 {max}",
+      categoryUnique: "{label}: {count} 个唯一值",
       kpiFields: "字段数",
       kpiInputs: "输入字段",
       kpiOutputs: "输出字段",
@@ -115,6 +121,9 @@ const translations = {
       listTitle: "记录列表",
       emptyFields: "请先配置字段，数据表单会按字段自动生成。",
       emptyRecords: "还没有数据。你可以手动录入，或在“导入”页上传 CSV/Excel。",
+      pageInfo: "第 {page} / {totalPages} 页，共 {total} 条",
+      previousPage: "上一页",
+      nextPage: "下一页",
       saved: "数据已保存",
       deleted: "数据已删除",
       confirmDeleteTitle: "删除数据",
@@ -154,9 +163,12 @@ const translations = {
       trained: "训练完成",
       trainingPartial: "部分目标训练完成",
       trainingFailed: "训练未完成",
+      recommendationRuleRegression: "推荐规则：MAE 越小越优。小样本验证集指标仅供参考。",
+      recommendationRuleClassification: "推荐规则：Macro F1 越高越优。小样本验证集指标仅供参考。",
       targetFailed: "该输出目标训练失败",
       nextStep: "下一步建议",
       needMoreRows: "请补充更多带目标值的数据后重新训练。",
+      preservedActive: "本次训练失败，旧的启用模型仍然保留。",
       activated: "模型已启用",
     },
     predict: {
@@ -194,9 +206,17 @@ const translations = {
       invalid_datetime: "{field} 必须是合法日期/时间。",
       invalid_choice: "{field} 必须是候选值之一。",
       invalid_field_name: "字段名只能包含字母、数字、下划线，且不能以数字开头。",
+      invalid_project_id: "项目不存在或项目 ID 无效。",
+      invalid_pagination: "分页参数必须是有效整数。",
       duplicate_field_name: "字段名已存在，请换一个字段名。",
       invalid_payload: "请求数据格式不正确。",
       field_validation_failed: "字段配置校验失败，请检查角色、类型和候选值。",
+      model_run_id_required: "请选择要启用的模型。",
+      model_run_not_found: "模型运行不存在，请刷新模型列表后重试。",
+      model_file_missing: "模型文件不存在，请重新训练模型。",
+      empty_upload: "上传文件为空，请选择包含表头和数据的文件。",
+      unsupported_file_type: "仅支持 .csv 或 .xlsx 文件。",
+      import_read_failed: "文件读取失败，请检查文件格式和编码。",
       missing_input_fields: "请先配置至少一个输入字段，再训练或预测。",
       missing_output_fields: "请先配置至少一个输出字段，再训练模型。",
       no_active_model: "当前项目没有已启用模型。请先训练模型，或在模型页启用一个模型。",
@@ -247,6 +267,11 @@ const translations = {
       subtitle: "Review fields, data, models, and missing values.",
       missingnessTitle: "Field Missingness",
       emptyMissingness: "No fields to summarize yet. Configure input and output fields first.",
+      dataQualityTitle: "Data Quality Summary",
+      emptyDataQuality: "No data quality details yet. Add records to show numeric ranges and category counts.",
+      missingFields: "{count} fields have missing values.",
+      numericRange: "{label}: min {min}, max {max}",
+      categoryUnique: "{label}: {count} unique values",
       kpiFields: "Fields",
       kpiInputs: "Input Fields",
       kpiOutputs: "Output Fields",
@@ -304,6 +329,9 @@ const translations = {
       listTitle: "Record List",
       emptyFields: "Configure fields first. The data form is generated from active fields.",
       emptyRecords: "No records yet. Enter data manually or import a CSV/Excel file.",
+      pageInfo: "Page {page} / {totalPages}, {total} records",
+      previousPage: "Previous",
+      nextPage: "Next",
       saved: "Data saved",
       deleted: "Data deleted",
       confirmDeleteTitle: "Delete Record",
@@ -343,9 +371,12 @@ const translations = {
       trained: "Training completed",
       trainingPartial: "Some targets trained",
       trainingFailed: "Training did not complete",
+      recommendationRuleRegression: "Recommendation rule: lower MAE is better. Small validation metrics are only a rough guide.",
+      recommendationRuleClassification: "Recommendation rule: higher macro F1 is better. Small validation metrics are only a rough guide.",
       targetFailed: "This output target failed to train",
       nextStep: "Next step",
       needMoreRows: "Add more records with target values, then train again.",
+      preservedActive: "This training attempt failed, so the previously active model was kept.",
       activated: "Model activated",
     },
     predict: {
@@ -383,9 +414,17 @@ const translations = {
       invalid_datetime: "{field} must be a valid date/time.",
       invalid_choice: "{field} must be one of the configured choices.",
       invalid_field_name: "Field names may only contain letters, numbers, and underscores, and cannot start with a number.",
+      invalid_project_id: "The project does not exist or the project ID is invalid.",
+      invalid_pagination: "Pagination values must be valid integers.",
       duplicate_field_name: "This field name already exists. Use a different field name.",
       invalid_payload: "The request payload is not valid.",
       field_validation_failed: "Field validation failed. Check role, type, and choices.",
+      model_run_id_required: "Choose a model to activate.",
+      model_run_not_found: "The model run does not exist. Refresh the model list and try again.",
+      model_file_missing: "The model file is missing. Train the model again.",
+      empty_upload: "The uploaded file is empty. Choose a file with headers and data.",
+      unsupported_file_type: "Only .csv and .xlsx files are supported.",
+      import_read_failed: "Could not read the file. Check the file format and encoding.",
       missing_input_fields: "Configure at least one input field before training or predicting.",
       missing_output_fields: "Configure at least one output field before training models.",
       no_active_model: "No active model exists for this project. Train models or activate a model on the Models page first.",
@@ -441,7 +480,10 @@ function setLanguage(language) {
   applyI18n();
   renderProjects();
   renderDynamicForms();
-  if (state.dashboard) renderOnboarding(state.dashboard.totals);
+  if (state.dashboard) {
+    renderOnboarding(state.dashboard.totals);
+    renderDataQuality(state.dashboard.data_quality);
+  }
   if (state.lastImportResult) renderImportResult(state.lastImportResult, state.lastImportMode);
   if (state.lastPredictionAction) {
     renderPredictionAction(t("predict.noActiveAction"));
@@ -577,6 +619,50 @@ function emptyBlock(message) {
   return `<div class="empty-state">${escapeHtml(message)}</div>`;
 }
 
+function renderDataQuality(dataQuality = {}) {
+  const items = [];
+  const missingCount = Number(dataQuality.missing_field_count || 0);
+  if (missingCount) {
+    items.push(`<div class="quality-item warning">${escapeHtml(t("dashboard.missingFields", { count: missingCount }))}</div>`);
+  }
+  for (const item of dataQuality.numeric_ranges || []) {
+    items.push(`<div class="quality-item">${escapeHtml(t("dashboard.numericRange", {
+      label: item.label || item.field,
+      min: item.min,
+      max: item.max,
+    }))}</div>`);
+  }
+  for (const item of dataQuality.category_uniques || []) {
+    items.push(`<div class="quality-item">${escapeHtml(t("dashboard.categoryUnique", {
+      label: item.label || item.field,
+      count: item.unique_count,
+    }))}</div>`);
+  }
+  document.getElementById("dataQualitySummary").innerHTML = items.length ? items.join("") : emptyBlock(t("dashboard.emptyDataQuality"));
+}
+
+function renderRecordsPagination() {
+  const el = document.getElementById("recordsPagination");
+  const pagination = state.recordsPagination || {};
+  if (!pagination.enabled || pagination.total_count <= pagination.page_size) {
+    el.innerHTML = "";
+    return;
+  }
+  el.innerHTML = `
+    <button type="button" class="secondary compact" data-records-page="${pagination.page - 1}" ${pagination.has_previous ? "" : "disabled"}>
+      ${escapeHtml(t("records.previousPage"))}
+    </button>
+    <span>${escapeHtml(t("records.pageInfo", {
+      page: pagination.page,
+      totalPages: pagination.total_pages,
+      total: pagination.total_count,
+    }))}</span>
+    <button type="button" class="secondary compact" data-records-page="${pagination.page + 1}" ${pagination.has_next ? "" : "disabled"}>
+      ${escapeHtml(t("records.nextPage"))}
+    </button>
+  `;
+}
+
 function renderProjects() {
   const select = document.getElementById("projectSelect");
   select.innerHTML = state.projects
@@ -610,6 +696,7 @@ function clearTransientResults() {
 
 async function changeProject(projectId) {
   state.currentProjectId = Number(projectId);
+  state.recordsPagination.page = 1;
   localStorage.setItem(STORAGE_PROJECT_KEY, String(state.currentProjectId));
   clearTransientResults();
   resetFieldForm();
@@ -734,6 +821,7 @@ async function refreshDashboard() {
   document.getElementById("dashboardKpis").innerHTML = kpis
     .map(([labelKey, value]) => `<div class="kpi"><span>${escapeHtml(t(labelKey))}</span><strong>${escapeHtml(value)}</strong></div>`)
     .join("");
+  renderDataQuality(data.data_quality);
   renderOnboarding(totals);
   document.getElementById("onboardingPanel").hidden = Boolean(totals.field_count && totals.record_count && totals.active_model_count);
   document.getElementById("missingnessBody").innerHTML = data.missingness.length
@@ -953,6 +1041,7 @@ async function saveRecord(event) {
       method: id ? "PATCH" : "POST",
       body: JSON.stringify(values),
     });
+    if (!id) state.recordsPagination.page = 1;
     resetRecordForm();
     await refreshAll();
     toast(t("records.saved"), "success");
@@ -962,12 +1051,15 @@ async function saveRecord(event) {
 }
 
 async function refreshRecords() {
-  const data = await api("/api/records/");
+  const pagination = state.recordsPagination;
+  const data = await api(`/api/records/?page=${encodeURIComponent(pagination.page)}&page_size=${encodeURIComponent(pagination.page_size)}`);
   state.records = data.records;
+  state.recordsPagination = data.pagination || state.recordsPagination;
   const fields = activeFields();
   if (!fields.length) {
     document.getElementById("recordsHead").innerHTML = "";
     document.getElementById("recordsBody").innerHTML = emptyRow(t("records.emptyFields"), 1);
+    renderRecordsPagination();
     return;
   }
   document.getElementById("recordsHead").innerHTML = `
@@ -990,6 +1082,7 @@ async function refreshRecords() {
       `)
       .join("")
     : emptyRow(t("records.emptyRecords"), fields.length + 2);
+  renderRecordsPagination();
 }
 
 function editRecord(id) {
@@ -1104,10 +1197,14 @@ function trainingNoticeForTarget(targetName) {
   const target = state.lastTrainingResult?.targets?.[targetName];
   if (!target || target.success !== false) return "";
   const message = localizeErrorPayload(target);
+  const preserved = target.preserved_active_model
+    ? `<p>${escapeHtml(t("models.preservedActive"))}</p>`
+    : "";
   return `
     <div class="result-summary error compact-summary">
       <strong>${escapeHtml(t("models.targetFailed"))}</strong>
       <p>${escapeHtml(message)}</p>
+      ${preserved}
       <p><b>${escapeHtml(t("models.nextStep"))}:</b> ${escapeHtml(t("models.needMoreRows"))}</p>
     </div>`;
 }
@@ -1120,6 +1217,7 @@ async function refreshModels() {
         <div class="model-card">
           <h4>${escapeHtml(target.target.label)} <small>${escapeHtml(target.target.name)}</small></h4>
           <p>${escapeHtml(t("models.taskType"))}: ${escapeHtml(t(`taskTypes.${target.task_type}`))}</p>
+          <p class="muted">${escapeHtml(t(target.task_type === "regression" ? "models.recommendationRuleRegression" : "models.recommendationRuleClassification"))}</p>
           ${trainingNoticeForTarget(target.target.name)}
           <div class="table-wrap">
             <table>
@@ -1255,6 +1353,10 @@ document.addEventListener("click", async (event) => {
     try { await deleteField(target.dataset.deleteField); } catch (error) { toast(localizeError(error), "error"); }
   }
   if (target.dataset.editRecord) editRecord(target.dataset.editRecord);
+  if (target.dataset.recordsPage) {
+    state.recordsPagination.page = Number(target.dataset.recordsPage);
+    try { await refreshRecords(); } catch (error) { toast(localizeError(error), "error"); }
+  }
   if (target.dataset.deleteRecord) {
     try { await deleteRecord(target.dataset.deleteRecord); } catch (error) { toast(localizeError(error), "error"); }
   }

@@ -22,6 +22,7 @@ from .services import (
     model_summary,
     predict,
     preview_import,
+    records_payload,
     serialize_field,
     serialize_model_run,
     serialize_project,
@@ -45,7 +46,14 @@ def _project_from_request(request) -> Project:
     if not raw and hasattr(request, "data") and isinstance(request.data, dict):
         raw = request.data.get("project_id")
     if raw:
-        return get_object_or_404(Project, pk=raw)
+        try:
+            project_id = int(raw)
+        except (TypeError, ValueError) as exc:
+            raise UserFacingError("invalid_project_id", "项目 ID 无效", {"project_id": raw}) from exc
+        try:
+            return Project.objects.get(pk=project_id)
+        except Project.DoesNotExist as exc:
+            raise UserFacingError("invalid_project_id", "项目不存在", {"project_id": project_id}) from exc
     return default_project()
 
 
@@ -72,8 +80,18 @@ def _error_code_for_message(message: str) -> tuple[str | None, dict[str, Any]]:
         return "missing_output_fields", {}
     if "当前项目没有已启用模型" in message:
         return "no_active_model", {}
+    if "模型运行不存在" in message:
+        return "model_run_not_found", {}
+    if "模型文件不存在" in message:
+        return "model_file_missing", {}
     if "至少需要" in message and "带目标值的数据" in message:
         return "not_enough_rows", {}
+    if "上传文件为空" in message:
+        return "empty_upload", {}
+    if "仅支持 .csv 或 .xlsx 文件" in message:
+        return "unsupported_file_type", {}
+    if "读取失败" in message:
+        return "import_read_failed", {}
     if "包含未知字段" in message or "包含未知列" in message:
         return "unknown_field", {}
     if "不能启用训练失败的模型" in message:
@@ -136,9 +154,12 @@ class DashboardSummaryView(APIView):
 
 class FieldCollectionView(APIView):
     def get(self, request):
-        project = _project_from_request(request)
-        fields = [serialize_field(field) for field in project.fields.order_by("sort_order", "id")]
-        return Response({"success": True, "project": serialize_project(project), "fields": fields})
+        try:
+            project = _project_from_request(request)
+            fields = [serialize_field(field) for field in project.fields.order_by("sort_order", "id")]
+            return Response({"success": True, "project": serialize_project(project), "fields": fields})
+        except Exception as exc:  # noqa: BLE001
+            return _error_response(exc)
 
     def post(self, request):
         try:
@@ -171,10 +192,17 @@ class FieldDetailView(APIView):
 
 class RecordCollectionView(APIView):
     def get(self, request):
-        project = _project_from_request(request)
-        fields = list(project.fields.order_by("sort_order", "id"))
-        records = [serialize_record(record, fields=fields) for record in project.records.order_by("id")]
-        return Response({"success": True, "project": serialize_project(project), "records": records})
+        try:
+            project = _project_from_request(request)
+            return Response(
+                records_payload(
+                    project,
+                    page=request.query_params.get("page"),
+                    page_size=request.query_params.get("page_size"),
+                )
+            )
+        except Exception as exc:  # noqa: BLE001
+            return _error_response(exc)
 
     def post(self, request):
         try:
@@ -218,7 +246,7 @@ class ImportPreviewView(APIView):
             project = _project_from_request(request)
             uploaded_file = request.FILES.get("file")
             if uploaded_file is None:
-                raise ValueError("请上传文件")
+                raise UserFacingError("upload_required", "请上传文件")
             return Response(preview_import(project, uploaded_file))
         except Exception as exc:  # noqa: BLE001
             return _error_response(exc)
@@ -232,7 +260,7 @@ class ImportCommitView(APIView):
             project = _project_from_request(request)
             uploaded_file = request.FILES.get("file")
             if uploaded_file is None:
-                raise ValueError("请上传文件")
+                raise UserFacingError("upload_required", "请上传文件")
             return Response(commit_import(project, uploaded_file))
         except Exception as exc:  # noqa: BLE001
             return _error_response(exc)
@@ -240,14 +268,20 @@ class ImportCommitView(APIView):
 
 class ExportCsvView(APIView):
     def get(self, request):
-        project = _project_from_request(request)
-        return export_csv_response(project)
+        try:
+            project = _project_from_request(request)
+            return export_csv_response(project)
+        except Exception as exc:  # noqa: BLE001
+            return _error_response(exc)
 
 
 class ExportCsvTemplateView(APIView):
     def get(self, request):
-        project = _project_from_request(request)
-        return export_csv_template_response(project)
+        try:
+            project = _project_from_request(request)
+            return export_csv_template_response(project)
+        except Exception as exc:  # noqa: BLE001
+            return _error_response(exc)
 
 
 class TrainView(APIView):
@@ -276,7 +310,13 @@ class ModelActivateView(APIView):
     def post(self, request):
         try:
             project = _project_from_request(request)
-            model_run_id = int(request.data.get("model_run_id"))
+            raw_model_run_id = request.data.get("model_run_id")
+            if not raw_model_run_id:
+                raise UserFacingError("model_run_id_required", "缺少模型运行 ID")
+            try:
+                model_run_id = int(raw_model_run_id)
+            except (TypeError, ValueError) as exc:
+                raise UserFacingError("model_run_id_required", "模型运行 ID 无效") from exc
             run = activate_model(project, model_run_id)
             return Response({"success": True, "model": serialize_model_run(run)})
         except Exception as exc:  # noqa: BLE001

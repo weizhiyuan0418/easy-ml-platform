@@ -31,12 +31,12 @@ Easy ML Platform 是一个初学者开发的早期项目，用于学习和尝试
 
 Windows 用户可以直接下载 Release 安装包：
 
-[下载 EasyMLPlatformSetup-0.2.1.exe](https://github.com/weizhiyuan0418/easy-ml-platform/releases/tag/v0.2.1)
+[下载 EasyMLPlatformSetup-0.2.2.exe](https://github.com/weizhiyuan0418/easy-ml-platform/releases/tag/v0.2.2)
 
 安装包 SHA256：
 
 ```text
-3F0632DC99DF2CF6A42C091A78B20824AD7057B1FBF6D6C75B45AD3EE9546F1C
+10616076698A3CE298359D60C108D4517827CD23F49D4EE62CAA0C4C55862187
 ```
 
 ### 一键启动源码版
@@ -203,6 +203,7 @@ PORT=8100 ./start.sh
 - `ROADMAP.md`：短期计划和不计划支持的范围。
 - `CHANGELOG.md`：版本变化记录。
 - `docs/codex-plugins.md`：维护项目时推荐使用的 Codex 插件清单。
+- `docs/release-checklist.md`：发布新版本前的检查清单。
 
 ### 贡献
 
@@ -243,12 +244,12 @@ Current limitations:
 
 Windows users can download the Release installer directly:
 
-[Download EasyMLPlatformSetup-0.2.1.exe](https://github.com/weizhiyuan0418/easy-ml-platform/releases/tag/v0.2.1)
+[Download EasyMLPlatformSetup-0.2.2.exe](https://github.com/weizhiyuan0418/easy-ml-platform/releases/tag/v0.2.2)
 
 Installer SHA256:
 
 ```text
-3F0632DC99DF2CF6A42C091A78B20824AD7057B1FBF6D6C75B45AD3EE9546F1C
+10616076698A3CE298359D60C108D4517827CD23F49D4EE62CAA0C4C55862187
 ```
 
 ### One-Click Source Startup
@@ -415,6 +416,7 @@ The current version is intended for small local tabular data experiments. Traini
 - `ROADMAP.md`: short-term plans and intentionally unsupported scope.
 - `CHANGELOG.md`: release history.
 - `docs/codex-plugins.md`: recommended Codex plugins for maintaining this repository.
+- `docs/release-checklist.md`: checklist for preparing a new release.
 
 ### Contributing
 

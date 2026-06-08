@@ -53,6 +53,8 @@ from .models import (
 FIELD_NAME_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 MISSING_VALUES = {None, ""}
 MIN_TRAINING_ROWS = 3
+DEFAULT_RECORD_PAGE_SIZE = 50
+MAX_RECORD_PAGE_SIZE = 200
 
 
 class UserFacingError(ValueError):
@@ -203,6 +205,56 @@ def serialize_record(record: DatasetRecord, fields: list[FieldDefinition] | None
         "values": {field.name: record.values.get(field.name) for field in fields},
         "created_at": record.created_at.isoformat() if record.created_at else None,
         "updated_at": record.updated_at.isoformat() if record.updated_at else None,
+    }
+
+
+def records_payload(project: Project, *, page: Any = None, page_size: Any = None) -> dict[str, Any]:
+    fields = list(project.fields.order_by("sort_order", "id"))
+    records = project.records.order_by("id")
+    total_count = records.count()
+    pagination_enabled = page is not None or page_size is not None
+
+    if not pagination_enabled:
+        return {
+            "success": True,
+            "project": serialize_project(project),
+            "records": [serialize_record(record, fields=fields) for record in records],
+            "pagination": {
+                "enabled": False,
+                "total_count": total_count,
+                "page": 1,
+                "page_size": total_count,
+                "total_pages": 1,
+                "has_previous": False,
+                "has_next": False,
+            },
+        }
+
+    try:
+        parsed_page = int(page or 1)
+        parsed_page_size = int(page_size or DEFAULT_RECORD_PAGE_SIZE)
+    except (TypeError, ValueError) as exc:
+        raise UserFacingError("invalid_pagination", "分页参数必须是整数") from exc
+    parsed_page = max(parsed_page, 1)
+    parsed_page_size = min(max(parsed_page_size, 1), MAX_RECORD_PAGE_SIZE)
+    total_pages = max(1, math.ceil(total_count / parsed_page_size))
+    parsed_page = min(parsed_page, total_pages)
+    start = (parsed_page - 1) * parsed_page_size
+    end = start + parsed_page_size
+    page_records = list(records[start:end])
+    return {
+        "success": True,
+        "project": serialize_project(project),
+        "records": [serialize_record(record, fields=fields) for record in page_records],
+        "pagination": {
+            "enabled": True,
+            "total_count": total_count,
+            "page": parsed_page,
+            "page_size": parsed_page_size,
+            "total_pages": total_pages,
+            "has_previous": parsed_page > 1,
+            "has_next": parsed_page < total_pages,
+        },
     }
 
 
@@ -378,7 +430,11 @@ def _read_uploaded_table(uploaded_file: Any) -> tuple[list[str], list[dict[str, 
 def preview_import(project: Project, uploaded_file: Any) -> dict[str, Any]:
     headers, rows, read_error = _read_uploaded_table(uploaded_file)
     if read_error:
-        raise ValueError(read_error)
+        if read_error == "上传文件为空":
+            raise UserFacingError("empty_upload", read_error)
+        if read_error == "仅支持 .csv 或 .xlsx 文件":
+            raise UserFacingError("unsupported_file_type", read_error)
+        raise UserFacingError("import_read_failed", read_error)
     fields = list(project.fields.filter(is_active=True).order_by("sort_order", "id"))
     header_map = {field.name: field.name for field in fields}
     header_map.update({field.label: field.name for field in fields})
@@ -707,6 +763,57 @@ def _model_storage_paths(project: Project, target_field: FieldDefinition, candid
     return model_path, meta_path
 
 
+def _safe_unlink(path: Path) -> bool:
+    try:
+        if path.exists() and path.is_file():
+            path.unlink()
+            return True
+    except OSError:
+        return False
+    return False
+
+
+def delete_model_files_for_runs(runs: list[ModelRun]) -> list[str]:
+    deleted: list[str] = []
+    for run in runs:
+        for raw_path in [run.model_path, run.metadata_path]:
+            if raw_path and _safe_unlink(Path(raw_path)):
+                deleted.append(raw_path)
+    return deleted
+
+
+def cleanup_orphan_model_artifacts(*, delete: bool = False) -> dict[str, Any]:
+    model_root = Path(settings.EASY_ML_MODEL_DIR)
+    referenced = {
+        str(Path(raw_path).resolve())
+        for raw_path in ModelRun.objects.exclude(model_path="").values_list("model_path", flat=True)
+    }
+    referenced.update(
+        str(Path(raw_path).resolve())
+        for raw_path in ModelRun.objects.exclude(metadata_path="").values_list("metadata_path", flat=True)
+    )
+
+    candidates = []
+    for subdir, pattern in [("trained", "*.joblib"), ("metadata", "*.json")]:
+        folder = model_root / subdir
+        if folder.exists():
+            candidates.extend(path for path in folder.glob(pattern) if path.is_file())
+
+    orphan_paths = [path for path in candidates if str(path.resolve()) not in referenced]
+    deleted_paths = []
+    if delete:
+        deleted_paths = [str(path) for path in orphan_paths if _safe_unlink(path)]
+    return {
+        "success": True,
+        "delete": delete,
+        "model_root": str(model_root),
+        "orphan_count": len(orphan_paths),
+        "deleted_count": len(deleted_paths),
+        "orphans": [str(path) for path in orphan_paths],
+        "deleted": deleted_paths,
+    }
+
+
 def _sort_key_for_run(task_type: str, run: ModelRun) -> tuple[int, float]:
     if run.error_message:
         return (1, 0.0)
@@ -729,6 +836,9 @@ def train_project_models(project: Project, *, target_field_id: int | None = None
     for target_field in target_list:
         task_type = output_task_type(target_field)
         runs: list[ModelRun] = []
+        previous_runs = list(ModelRun.objects.filter(project=project, target_field=target_field))
+        previous_active = next((run for run in previous_runs if run.is_active), None)
+        old_files_to_delete: list[ModelRun] = []
         try:
             X, y, feature_columns, numeric_features, categorical_features = prepare_training_frame(project, target_field)
             test_size = max(1, int(round(len(X) * 0.2)))
@@ -758,10 +868,6 @@ def train_project_models(project: Project, *, target_field_id: int | None = None
             input_meta = [serialize_field(field) for field in input_fields]
 
             with transaction.atomic():
-                ModelRun.objects.filter(project=project, target_field=target_field).update(
-                    is_recommended=False,
-                    is_active=False,
-                )
                 for candidate in candidates:
                     try:
                         split_pipeline = candidate.build_pipeline()
@@ -835,22 +941,36 @@ def train_project_models(project: Project, *, target_field_id: int | None = None
 
                 successful = [run for run in runs if not run.error_message]
                 if successful:
+                    old_files_to_delete = previous_runs
+                    if previous_runs:
+                        ModelRun.objects.filter(pk__in=[run.pk for run in previous_runs]).delete()
                     best = sorted(successful, key=lambda run: _sort_key_for_run(task_type, run))[0]
                     best.is_recommended = True
                     best.is_active = True
                     best.save(update_fields=["is_recommended", "is_active"])
+                    ModelRun.objects.filter(project=project, target_field=target_field).exclude(pk=best.pk).update(
+                        is_recommended=False,
+                        is_active=False,
+                    )
+
+            deleted_paths = delete_model_files_for_runs(old_files_to_delete) if old_files_to_delete else []
 
             payload["targets"][target_field.name] = {
                 "success": bool([run for run in runs if not run.error_message]),
                 "task_type": task_type,
                 "runs": [serialize_model_run(ModelRun.objects.get(pk=run.pk)) for run in runs],
+                "preserved_active_model": None,
+                "deleted_old_model_file_count": len(deleted_paths),
             }
+            if not payload["targets"][target_field.name]["success"] and previous_active:
+                payload["targets"][target_field.name]["preserved_active_model"] = serialize_model_run(previous_active)
         except Exception as exc:  # noqa: BLE001
             error_payload: dict[str, Any] = {
                 "success": False,
                 "task_type": task_type,
                 "error": str(exc),
                 "runs": [],
+                "preserved_active_model": serialize_model_run(previous_active) if previous_active else None,
             }
             if isinstance(exc, UserFacingError):
                 error_payload["error_code"] = exc.code
@@ -869,9 +989,14 @@ def train_project_models(project: Project, *, target_field_id: int | None = None
 
 
 def activate_model(project: Project, model_run_id: int) -> ModelRun:
-    run = ModelRun.objects.select_related("target_field").get(project=project, pk=model_run_id)
+    try:
+        run = ModelRun.objects.select_related("target_field").get(project=project, pk=model_run_id)
+    except ModelRun.DoesNotExist as exc:
+        raise UserFacingError("model_run_not_found", "模型运行不存在") from exc
     if run.error_message or not run.model_path:
         raise UserFacingError("failed_model_activation", "不能启用训练失败的模型")
+    if not Path(run.model_path).exists():
+        raise UserFacingError("model_file_missing", "模型文件不存在，请重新训练模型", {"model": run.candidate_label})
     ModelRun.objects.filter(project=project, target_field=run.target_field).update(is_active=False)
     run.is_active = True
     run.save(update_fields=["is_active"])
@@ -922,6 +1047,12 @@ def predict(project: Project, payload: dict[str, Any]) -> dict[str, Any]:
 
     results = {}
     for run in active_runs:
+        if not run.model_path or not Path(run.model_path).exists():
+            raise UserFacingError(
+                "model_file_missing",
+                f"{run.target_field.label} 的模型文件不存在，请重新训练模型",
+                {"target": run.target_field.label, "model": run.candidate_label},
+            )
         artifact: ModelArtifact = joblib.load(run.model_path)
         feature_row = build_feature_row(input_fields, input_values)
         X = pd.DataFrame([feature_row])
@@ -942,13 +1073,23 @@ def dashboard_summary(project: Project) -> dict[str, Any]:
     input_count = sum(1 for field in fields if field.role == FIELD_ROLE_INPUT)
     output_count = sum(1 for field in fields if field.role == FIELD_ROLE_OUTPUT)
     total_records = project.records.count()
+    records = list(project.records.all())
     missingness = []
+    data_quality = {
+        "missing_field_count": 0,
+        "numeric_ranges": [],
+        "category_uniques": [],
+    }
     for field in fields:
         present = 0
-        for record in project.records.all():
+        observed_values = []
+        for record in records:
             if not _is_missing(record.values.get(field.name)):
                 present += 1
+                observed_values.append(record.values.get(field.name))
         missing = max(total_records - present, 0)
+        if missing:
+            data_quality["missing_field_count"] += 1
         missingness.append(
             {
                 "field": field.name,
@@ -959,6 +1100,33 @@ def dashboard_summary(project: Project) -> dict[str, Any]:
                 "missing_ratio": round(missing / total_records, 4) if total_records else 0.0,
             }
         )
+        if field.field_type == FIELD_TYPE_NUMBER:
+            numbers = []
+            for value in observed_values:
+                try:
+                    number = float(value)
+                except (TypeError, ValueError):
+                    continue
+                if math.isfinite(number):
+                    numbers.append(number)
+            if numbers:
+                data_quality["numeric_ranges"].append(
+                    {
+                        "field": field.name,
+                        "label": field.label,
+                        "min": min(numbers),
+                        "max": max(numbers),
+                    }
+                )
+        if field.field_type in {FIELD_TYPE_CATEGORY, FIELD_TYPE_BOOLEAN}:
+            unique_values = sorted({str(value) for value in observed_values if not _is_missing(value)})
+            data_quality["category_uniques"].append(
+                {
+                    "field": field.name,
+                    "label": field.label,
+                    "unique_count": len(unique_values),
+                }
+            )
     return {
         "success": True,
         "project": serialize_project(project),
@@ -971,4 +1139,5 @@ def dashboard_summary(project: Project) -> dict[str, Any]:
             "active_model_count": project.model_runs.filter(is_active=True).count(),
         },
         "missingness": missingness,
+        "data_quality": data_quality,
     }

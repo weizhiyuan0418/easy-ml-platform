@@ -266,6 +266,37 @@ select {
   margin-top: 5px;
 }
 
+.quality-list {
+  display: grid;
+  gap: 8px;
+}
+
+.quality-item {
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: #1d3440;
+  padding: 10px 12px;
+}
+
+.quality-item.warning {
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+
+.pagination {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.pagination span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .grid-form,
 .dynamic-form {
   display: grid;
@@ -734,6 +765,16 @@ td.actions {
   .page-header {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .panel-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .pagination {
+    justify-content: flex-start;
   }
 
   .onboarding-step {

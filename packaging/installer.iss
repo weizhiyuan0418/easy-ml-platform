@@ -1,5 +1,5 @@
 #define MyAppName "Easy ML Platform"
-#define MyAppVersion "0.2.1"
+#define MyAppVersion "0.2.2"
 #define MyAppPublisher "weizhiyuan0418"
 #define MyAppExeName "EasyMLPlatform.exe"
 

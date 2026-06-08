@@ -2,6 +2,14 @@
 
 All notable changes are recorded here. This project follows a simple version history rather than a strict release specification.
 
+## v0.2.2 - Usability and Maintenance Fixes
+
+- Added paginated record loading in the Web UI to keep larger local datasets easier to browse.
+- Added a dashboard data-quality summary for missing fields, numeric ranges, and category counts.
+- Preserved existing active models when a later training attempt fails, and cleaned up replaced model artifacts after successful retraining.
+- Added stable error codes for invalid project IDs, import file problems, missing model files, and model activation mistakes.
+- Added a model artifact cleanup dry-run tool for maintenance.
+
 ## v0.2.1 - Stability and Public Repository Polish
 
 - Added roadmap and changelog documentation.
