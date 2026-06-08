@@ -202,6 +202,7 @@ PORT=8100 ./start.sh
 
 - `ROADMAP.md`：短期计划和不计划支持的范围。
 - `CHANGELOG.md`：版本变化记录。
+- `docs/codex-plugins.md`：维护项目时推荐使用的 Codex 插件清单。
 
 ### 贡献
 
@@ -413,6 +414,7 @@ The current version is intended for small local tabular data experiments. Traini
 
 - `ROADMAP.md`: short-term plans and intentionally unsupported scope.
 - `CHANGELOG.md`: release history.
+- `docs/codex-plugins.md`: recommended Codex plugins for maintaining this repository.
 
 ### Contributing
 
